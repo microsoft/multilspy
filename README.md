@@ -1,13 +1,17 @@
 # Multilspy: LSP client library in Python to build applications around language servers
 
 ## Introduction
-This repository hosts multilspy, a library developed as part of research conducted for ["Monitor-Guided Decoding of Code LMs with Static Analysis of Repository Context"](https://neurips.cc/virtual/2023/poster/70362) appearing at NeurIPS 2023 (["Guiding Language Models of Code with Global Context using Monitors"](https://arxiv.org/abs/2306.10763) on Arxiv). The work introduces Monitor-Guided Decoding (MGD) for code generation using Language Models, where a monitor uses static analysis to guide the decoding, ensuring that the generated code follows various correctness properties, like absence of hallucinated symbol names, valid order of method calls, etc. For further details about Monitor-Guided Decoding, please refer to the paper and GitHub repository [microsoft/monitors4codegen](https://github.com/microsoft/monitors4codegen).
+This repository hosts multilspy, a library developed as part of research conducted for NeruIPS 2023 paper titled ["Monitor-Guided Decoding of Code LMs with Static Analysis of Repository Context"](https://neurips.cc/virtual/2023/poster/70362) (["Guiding Language Models of Code with Global Context using Monitors"](https://arxiv.org/abs/2306.10763) on Arxiv). The paper introduces Monitor-Guided Decoding (MGD) for code generation using Language Models, where a monitor uses static analysis to guide the decoding, ensuring that the generated code follows various correctness properties, like absence of hallucinated symbol names, valid order of method calls, etc. For further details about Monitor-Guided Decoding, please refer to the paper and GitHub repository [microsoft/monitors4codegen](https://github.com/microsoft/monitors4codegen).
 
-`multilspy` is a cross-platform library that we have built to set up and interact with various language servers in a unified and easy way. Using `multilspy` makes it easy to create a language server client to easily obtain and use results of various static analyses provided by a large variety of language servers that communicate over the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/). `multilspy` is intended to be used to query various language servers, without having to worry about setting up their configurations and implementing the client-side of language server protocol. `multilspy` currently supports running language servers for Java, Rust, C# and Python, and we aim to expand this list with the help of the community. `multilspy` intends to ease the process of using language servers, by abstracting the setting up of the language servers, performing language-specific configuration and handling communication with the server over the json-rpc based protocol, while exposing a simple interface to the user.
+`multilspy` is a cross-platform library designed to simplify the process of creating language server clients to query and obtain results of various static analyses from a wide variety of language servers that communicate over the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/). It is easily extensible to support any [language that has a Language Server](https://microsoft.github.io/language-server-protocol/implementors/servers/) and currently supports Java, Rust, C# and Python. We aim to continuously add support for more language servers and languages.
 
-[Language servers]((https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/)) are tools that perform a variety of static analyses on source code and provide useful information such as type-directed code completion suggestions, symbol definition locations, symbol references, etc., over the [Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/).
+[Language servers]((https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/)) are tools that perform a variety of static analyses on code repositories and provide useful information such as type-directed code completion suggestions, symbol definition locations, symbol references, etc., over the [Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/). Since LSP is language-agnostic, `multilspy` can provide the results for static analyses of code in different languages over a common interface.
 
-Since LSP is language-agnostic, `multilspy` can provide the results for static analyses of code in different languages over a common interface. `multilspy` is easily extensible to any language that has a Language Server and currently supports Java, Rust, C# and Python and we aim to support more language servers from the [list of language server implementations](https://microsoft.github.io/language-server-protocol/implementors/servers/).
+`multilspy` intends to ease the process of using language servers, by handling various steps in using a language server:
+* Automatically handling the download of platform-specific server binaries, and setup/teardown of language servers
+* Handling JSON-RPC based communication between the client and the server
+* Maintaining and passing hand-tuned server and language specific configuration parameters
+* Providing a simple API to the user, while executing all steps of server-specific protocol steps to execute the query/request.
 
 Some of the analyses results that `multilspy` can provide are:
 - Finding the definition of a function or a class ([textDocument/definition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition))
@@ -18,12 +22,19 @@ Some of the analyses results that `multilspy` can provide are:
 - Please create an issue/PR to add any other LSP request not listed above
 
 ## Installation
+It is ideal to create a new virtual environment with `python>=3.10`. To create a virtual environment using conda and activate it:
+```
+conda create -n multilspy_env python=3.10
+conda activate multilspy_env
+```
+Further details and instructions on creation of python virtual environments can be found in the [official documentation](https://docs.python.org/3/library/venv.html). Further, we also refer users to [Miniconda](https://docs.conda.io/en/latest/miniconda.html), as an alternative to the above steps for creation of the virtual environment.
+
 To install `multilspy` using pip, execute the following command:
 ```
 pip install https://github.com/microsoft/multilspy/archive/main.zip
 ```
 
-### Usage
+## Usage
 Example usage:
 ```python
 from multilspy import SyncLanguageServer
@@ -70,6 +81,9 @@ The file [src/multilspy/language_server.py](src/multilspy/language_server.py) pr
 ```bash
 pytest tests/multilspy
 ```
+
+## Use of `multilspy` in AI4Code Scenarios like Monitor-Guided Decoding
+`multilspy` provides all the features that language-server-protocol provides to IDEs like VSCode. It is useful to develop toolsets that can interface with AI systems like Large Language Models (LLM). One such usecase is Monitor-Guided Decoding, where `multilspy` is used to find results of static analyses like type-directed completions, to guide the token-by-token generation of code using an LLM, ensuring that all generated identifier/method names are valid in the context of the repository, significantly boosting the compilability of generated code. MGD also demonstrates use of `multilspy` to create monitors that ensure all function calls in LLM generated code receive correct number of arguments, and that functions of an object are called in the right order following a protocol (like not calling "read" before "open" on a file object).
 
 ## Frequently Asked Questions (FAQ)
 ### ```asyncio``` related Runtime error when executing the tests for MGD
