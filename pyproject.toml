@@ -1,0 +1,41 @@
+# Read https://setuptools.pypa.io/en/latest/userguide/datafiles.html
+[build-system]
+requires = ["flit_core>=3.4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "multilspy"
+version = "0.0.1"
+authors = [
+  { name="Lakshya A Agrawal", email="lakshya.aagrawal@gmail.com" },
+]
+description = "A language-agnostic LSP client in Python, with a library interface. Intended to be used to build applications around language servers. Currently multilspy supports language servers for Python, Rust, Java and C#. Originally appeared as part of Monitor-Guided Decoding (https://github.com/microsoft/monitors4codegen)"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Development Status :: 2 - Pre-Alpha",
+    "Topic :: Software Development",
+    "Topic :: Text Editors :: Integrated Development Environments (IDE)",
+    "Programming Language :: C#",
+    "Programming Language :: Java",
+    "Programming Language :: Python",
+    "Programming Language :: Rust"
+]
+
+dependencies = [
+  "jedi-language-server==0.41.1",
+  "pydantic==1.10.5",
+  "requests==2.32.3"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/microsoft/multilspy"
+"Bug Tracker" = "https://github.com/microsoft/multilspy/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]

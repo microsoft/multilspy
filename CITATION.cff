@@ -1,0 +1,78 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  Monitor-Guided Decoding of Code LMs with Static Analysis
+  of Repository Context
+message: >-
+  If you use this repository, please cite it using the metadata
+  from this file.
+type: dataset
+authors:
+  - given-names: Lakshya A
+    family-names: Agrawal
+    email: t-lakagrawal@microsoft.com
+    affiliation: Microsoft Research
+    orcid: 'https://orcid.org/0000-0003-0409-8212'
+  - given-names: Aditya
+    family-names: Kanade
+    email: kanadeaditya@microsoft.com
+    affiliation: Microsoft Research
+  - given-names: Navin
+    family-names: Goyal
+    email: navingo@microsoft.com
+    affiliation: Microsoft Research
+  - given-names: Shuvendu K.
+    family-names: Lahiri
+    email: shuvendu.lahiri@microsoft.com
+    affiliation: Microsoft Research
+  - given-names: Sriram K.
+    family-names: Rajamani
+    email: sriram@microsoft.com
+    affiliation: Microsoft Research
+identifiers:
+  - type: doi
+    value: 10.48550/arXiv.2306.10763
+  - type: url
+    value: >-
+      https://openreview.net/forum?id=qPUbKxKvXq&noteId=98Ukj82fSP
+abstract: >-
+  Language models of code (LMs) work well when the
+  surrounding code provides sufficient context. This is not
+  true when it becomes necessary to use types, functionality
+  or APIs defined elsewhere in the repository or a linked
+  library, especially those not seen during training. LMs
+  suffer from limited awareness of such global context and
+  end up hallucinating.
+
+
+  Integrated development environments (IDEs) assist
+  developers in understanding repository context using
+  static analysis. We extend this assistance, enjoyed by
+  developers, to LMs. We propose monitor-guided decoding
+  (MGD) where a monitor uses static analysis to guide the
+  decoding. We construct a repository-level dataset
+  PragmaticCode for method-completion in Java and evaluate
+  MGD on it. On models of varying parameter scale, by
+  monitoring for type-consistent object dereferences, MGD
+  consistently improves compilation rates and agreement with
+  ground truth. Further, LMs with fewer parameters, when
+  augmented with MGD, can outperform larger LMs. With MGD,
+  SantaCoder-1.1B achieves better compilation rate and
+  next-identifier match than the much larger
+  text-davinci-003 model.
+
+
+  We also conduct a generalizability study to evaluate the
+  ability of MGD to generalize to multiple programming
+  languages (Java, C# and Rust), coding scenarios (e.g.,
+  correct number of arguments to method calls), and to
+  enforce richer semantic constraints (e.g., stateful API
+  protocols). Our data and implementation are available at
+  https://github.com/microsoft/monitors4codegen.
+keywords:
+  - program analysis
+  - correctness
+  - code generation
+  - Language models
