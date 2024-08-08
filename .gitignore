@@ -396,3 +396,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+src/multilspy/language_servers/eclipse_jdtls/static/
+src/multilspy/language_servers/omnisharp/static/
+src/multilspy/language_servers/rust_analyzer/static/
