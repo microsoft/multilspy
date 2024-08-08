@@ -8,7 +8,7 @@ title: >-
 message: >-
   If you use this repository, please cite it using the metadata
   from this file.
-type: dataset
+type: software
 authors:
   - given-names: Lakshya A
     family-names: Agrawal
