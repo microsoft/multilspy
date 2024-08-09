@@ -187,6 +187,7 @@ class DotnetVersion(str, Enum):
     V4 = "4"
     V6 = "6"
     V7 = "7"
+    V8 = "8"
     VMONO = "mono"
 
 class PlatformUtils:
