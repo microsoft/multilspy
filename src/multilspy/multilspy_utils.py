@@ -14,9 +14,9 @@ import platform
 import subprocess
 from enum import Enum
 
-from multilspy.multilspy_exceptions import MultilspyException
+from monitors4codegen.multilspy.multilspy_exceptions import MultilspyException
 from pathlib import PurePath, Path
-from multilspy.multilspy_logger import MultilspyLogger
+from monitors4codegen.multilspy.multilspy_logger import MultilspyLogger
 
 class TextUtils:
     """
@@ -187,7 +187,6 @@ class DotnetVersion(str, Enum):
     V4 = "4"
     V6 = "6"
     V7 = "7"
-    V8 = "8"
     VMONO = "mono"
 
 class PlatformUtils:
@@ -229,9 +228,7 @@ class PlatformUtils:
                     break
             if version == '':
                 raise MultilspyException("dotnet not found on the system")
-            if version.startswith("8"):
-                return DotnetVersion.V8
-            elif version.startswith("7"):
+            if version.startswith("7"):
                 return DotnetVersion.V7
             elif version.startswith("6"):
                 return DotnetVersion.V6
