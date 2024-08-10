@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 import os
-import stat
+import time
 import pathlib
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
@@ -16,8 +16,6 @@ from multilspy.language_server import LanguageServer
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
 from multilspy.multilspy_config import MultilspyConfig
-from multilspy.multilspy_utils import FileUtils
-from multilspy.multilspy_utils import PlatformUtils
 
 
 class CodeQL(LanguageServer):
@@ -38,6 +36,37 @@ class CodeQL(LanguageServer):
             "ql",
         )
         self.server_ready = asyncio.Event()
+
+    def get_syntax_errors(self, relative_file_path: str, timeout: int = 2):
+        """
+        Request syntax errors from the CodeQL Language Server for the given URI.
+        """
+        absolute_file_path = str(pathlib.PurePath(self.repository_root_path, relative_file_path))
+        uri = pathlib.Path(absolute_file_path).as_uri()
+
+        # Define and register a custom handler for the syntax error notification.
+        syntax_errors = []
+        async def syntax_error_handler(params):
+            syntax_errors
+            if params["uri"] == uri:
+                syntax_errors.append(params)
+
+        self.server.on_notification("textDocument/publishDiagnostics", syntax_error_handler)
+
+        # Trigger the syntax error check by opening the file and performing a dummy operation.
+        with self.open_file(relative_file_path):
+            self.insert_text_at_position(relative_file_path, line=0, column=0, text_to_be_inserted="")
+            # Wait for the syntax error notification handler to be called.
+            # NOTE: we may want to `break` after seeing the first syntax_error. However, there
+            # may be multiple. Not sure how to handle this.
+            time_start = time.time()
+            while time.time() - time_start < timeout:
+                time.sleep(0.1)
+
+        # Unregister the custom handler.
+        self.server.on_notification("textDocument/publishDiagnostics", lambda _: None)
+
+        return syntax_errors
 
     def setup_runtime_dependencies(self, logger: MultilspyLogger, config: MultilspyConfig) -> str:
         raise NotImplementedError
@@ -115,7 +144,7 @@ class CodeQL(LanguageServer):
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
         self.server.on_notification("$/progress", do_nothing)
-        self.server.on_notification("textDocument/publishDiagnostics", window_log_message)
+        self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
         self.server.on_notification("experimental/serverStatus", check_experimental_status)
 
@@ -130,7 +159,6 @@ class CodeQL(LanguageServer):
             )
 
             init_response = await self.server.send.initialize(initialize_params)
-            print(init_response)
             assert init_response["capabilities"]["textDocumentSync"] == 1
             assert "completionProvider" in init_response["capabilities"]
             self.server.notify.initialized({})
