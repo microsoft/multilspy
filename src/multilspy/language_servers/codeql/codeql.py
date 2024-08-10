@@ -29,7 +29,7 @@ class CodeQL(LanguageServer):
         """
         Creates a CodeQL instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
-        codeql_executable_path = "codeql execute language-server --check-errors=EXPLICIT" # FIXME
+        codeql_executable_path = "codeql execute language-server --check-errors ON_CHANGE -v --log-to-stderr" # FIXME
         super().__init__(
             config,
             logger,

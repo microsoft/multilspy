@@ -14,6 +14,7 @@ class Language(str, Enum):
     PYTHON = "python"
     RUST = "rust"
     JAVA = "java"
+    CODEQL = "codeql"
 
     def __str__(self) -> str:
         return self.value
