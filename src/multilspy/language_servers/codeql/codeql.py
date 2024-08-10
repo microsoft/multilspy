@@ -40,43 +40,7 @@ class CodeQL(LanguageServer):
         self.server_ready = asyncio.Event()
 
     def setup_runtime_dependencies(self, logger: MultilspyLogger, config: MultilspyConfig) -> str:
-        """
-        Setup runtime dependencies for OmniSharp.
-        """
-        platform_id = PlatformUtils.get_platform_id()
-
-        with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
-            d = json.load(f)
-            del d["_description"]
-
-        assert platform_id.value in [
-            "linux-x64",
-            "win-x64",
-        ], "Only linux-x64 platform is supported for in multilspy at the moment"
-
-        runtime_dependencies = d["runtimeDependencies"]
-        runtime_dependencies = [
-            dependency for dependency in runtime_dependencies if dependency["platformId"] == platform_id.value
-        ]
-        assert len(runtime_dependencies) == 1
-        dependency = runtime_dependencies[0]
-
-        CodeQL_ls_dir = os.path.join(os.path.dirname(__file__), "static", "CodeQL")
-        CodeQL_executable_path = os.path.join(CodeQL_ls_dir, dependency["binaryName"])
-        if not os.path.exists(CodeQL_ls_dir):
-            os.makedirs(CodeQL_ls_dir)
-            if dependency["archiveType"] == "gz":
-                FileUtils.download_and_extract_archive(
-                    logger, dependency["url"], CodeQL_executable_path, dependency["archiveType"]
-                )
-            else:
-                FileUtils.download_and_extract_archive(
-                    logger, dependency["url"], CodeQL_ls_dir, dependency["archiveType"]
-                )
-        assert os.path.exists(CodeQL_executable_path)
-        os.chmod(CodeQL_executable_path, stat.S_IEXEC)
-
-        return CodeQL_executable_path
+        raise NotImplementedError
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """
