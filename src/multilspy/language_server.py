@@ -8,6 +8,7 @@ The details of Language Specific configuration are not exposed to the user.
 import asyncio
 import dataclasses
 import json
+import time
 import logging
 import os
 import pathlib
@@ -705,7 +706,7 @@ class SyncLanguageServer:
         :param relative_file_path: The relative path of the file to open.
         """
         return self.language_server.get_open_file_text(relative_file_path)
-
+   
     @contextmanager
     def start_server(self) -> Iterator["SyncLanguageServer"]:
         """
@@ -714,14 +715,49 @@ class SyncLanguageServer:
         :return: None
         """
         self.loop = asyncio.new_event_loop()
-        loop_thread = threading.Thread(target=self.loop.run_forever, daemon=True)
-        loop_thread.start()
+        self.loop_thread = threading.Thread(target=self.loop.run_forever, daemon=True)
+        self.loop_thread.start()
         ctx = self.language_server.start_server()
         asyncio.run_coroutine_threadsafe(ctx.__aenter__(), loop=self.loop).result()
-        yield self
-        asyncio.run_coroutine_threadsafe(ctx.__aexit__(None, None, None), loop=self.loop).result()
-        self.loop.call_soon_threadsafe(self.loop.stop)
-        loop_thread.join()
+        try:
+            yield self
+        finally:
+            self._shutdown_server(ctx)
+
+    def _shutdown_server(self, ctx):
+        """
+        Helper method to shutdown the server and clean up resources.
+        """
+        try:
+            # Schedule the server shutdown
+            future = asyncio.run_coroutine_threadsafe(ctx.__aexit__(None, None, None), loop=self.loop)
+            
+            # Wait for the shutdown to complete with a timeout
+            future.result(timeout=5)
+        except asyncio.TimeoutError:
+            print("Warning: Server shutdown timed out")
+        except Exception as e:
+            print(f"Error during server shutdown: {e}")
+        finally:
+            # Stop the event loop
+            self.loop.call_soon_threadsafe(self.loop.stop)
+            
+            # Wait for the loop to stop (with a timeout)
+            shutdown_timeout = 5
+            start_time = time.time()
+            while self.loop.is_running() and time.time() - start_time < shutdown_timeout:
+                time.sleep(0.1)
+            
+            if self.loop.is_running():
+                print("Warning: Event loop is still running after timeout")
+            
+            # Close the loop
+            self.loop.call_soon_threadsafe(self.loop.close)
+            
+            # Join the thread (with a timeout)
+            self.loop_thread.join(timeout=2)
+            if self.loop_thread.is_alive():
+                print("Warning: Loop thread is still alive after timeout")
 
     def request_definition(self, file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
         """
