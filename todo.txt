@@ -1,0 +1,5 @@
+
+Try both tsserver and typescript-language-server
+and see which of them support mining all document symbols, definitions, and references.
+
+Seems like both are only partial implementations.

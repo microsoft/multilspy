@@ -1,5 +1,5 @@
 """
-Provides Python specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Python.
+Provides Typescript/Javascript specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Typescript/Javascript.
 """
 
 import json
@@ -16,26 +16,26 @@ from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
 from multilspy.multilspy_config import MultilspyConfig
 
 
-class JediServer(LanguageServer):
+class TypescriptLanguageServer(LanguageServer):
     """
-    Provides Python specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Python.
+    Provides Typescript specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Typescript.
     """
 
     def __init__(self, config: MultilspyConfig, logger: MultilspyLogger, repository_root_path: str):
         """
-        Creates a JediServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
+        Creates a TypescriptLanguageServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
         super().__init__(
             config,
             logger,
             repository_root_path,
-            ProcessLaunchInfo(cmd="jedi-language-server", cwd=repository_root_path),
-            "python",
+            ProcessLaunchInfo(cmd="typescript-language-server --stdio", cwd=repository_root_path),
+            "typescript",
         )
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """
-        Returns the initialize params for the Jedi Language Server.
+        Returns the initialize params for the Typescript Language Server.
         """
         with open(os.path.join(os.path.dirname(__file__), "initialize_params.json"), "r") as f:
             d = json.load(f)
@@ -58,9 +58,9 @@ class JediServer(LanguageServer):
         return d
 
     @asynccontextmanager
-    async def start_server(self) -> AsyncIterator["JediServer"]:
+    async def start_server(self) -> AsyncIterator["TypescriptLanguageServer"]:
         """
-        Starts the JEDI Language Server, waits for the server to be ready and yields the LanguageServer instance.
+        Starts the Typescript Language Server, waits for the server to be ready and yields the LanguageServer instance.
 
         Usage:
         ```
@@ -96,7 +96,7 @@ class JediServer(LanguageServer):
         self.server.on_notification("experimental/serverStatus", check_experimental_status)
 
         async with super().start_server():
-            self.logger.log("Starting typescript-language-server server process", logging.INFO)
+            self.logger.log("Starting jedi-language-server server process", logging.INFO)
             await self.server.start()
             initialize_params = self._get_initialize_params(self.repository_root_path)
 
