@@ -94,6 +94,11 @@ class LanguageServer:
             from multilspy.language_servers.omnisharp.omnisharp import OmniSharp
 
             return OmniSharp(config, logger, repository_root_path)
+        elif config.code_language == Language.TYPESCRIPT:
+            from multilspy.language_servers.typescript_language_server.typescript_language_server import (
+                TypeScriptLanguageServer,
+            )
+            return TypeScriptLanguageServer(config, logger, repository_root_path)
         else:
             logger.log(f"Language {config.code_language} is not supported", logging.ERROR)
             raise MultilspyException(f"Language {config.code_language} is not supported")

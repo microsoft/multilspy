@@ -96,7 +96,7 @@ class JediServer(LanguageServer):
         self.server.on_notification("experimental/serverStatus", check_experimental_status)
 
         async with super().start_server():
-            self.logger.log("Starting typescript-language-server server process", logging.INFO)
+            self.logger.log("Starting jedi-language-server server process", logging.INFO)
             await self.server.start()
             initialize_params = self._get_initialize_params(self.repository_root_path)
 
