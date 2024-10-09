@@ -400,3 +400,8 @@ FodyWeavers.xsd
 src/multilspy/language_servers/eclipse_jdtls/static/
 src/multilspy/language_servers/omnisharp/static/
 src/multilspy/language_servers/rust_analyzer/static/
+src/multilspy/language_servers/typescript_language_server/static/
+
+# Virtual Environment
+.venv/
+venv/

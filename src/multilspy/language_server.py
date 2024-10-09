@@ -8,6 +8,7 @@ The details of Language Specific configuration are not exposed to the user.
 import asyncio
 import dataclasses
 import json
+import time
 import logging
 import os
 import pathlib
@@ -64,6 +65,7 @@ class LanguageServer:
         Creates a language specific LanguageServer instance based on the given configuration, and appropriate settings for the programming language.
 
         If language is Java, then ensure that jdk-17.0.6 or higher is installed, `java` is in PATH, and JAVA_HOME is set to the installation directory.
+        If language is JS/TS, then ensure that node (v18.16.0 or higher) is installed and in PATH.
 
         :param repository_root_path: The root path of the repository.
         :param config: The Multilspy configuration.
@@ -93,6 +95,11 @@ class LanguageServer:
             from multilspy.language_servers.omnisharp.omnisharp import OmniSharp
 
             return OmniSharp(config, logger, repository_root_path)
+        elif config.code_language in [Language.TYPESCRIPT, Language.JAVASCRIPT]:
+            from multilspy.language_servers.typescript_language_server.typescript_language_server import (
+                TypeScriptLanguageServer,
+            )
+            return TypeScriptLanguageServer(config, logger, repository_root_path)
         else:
             logger.log(f"Language {config.code_language} is not supported", logging.ERROR)
             raise MultilspyException(f"Language {config.code_language} is not supported")
@@ -705,7 +712,7 @@ class SyncLanguageServer:
         :param relative_file_path: The relative path of the file to open.
         """
         return self.language_server.get_open_file_text(relative_file_path)
-
+   
     @contextmanager
     def start_server(self) -> Iterator["SyncLanguageServer"]:
         """
