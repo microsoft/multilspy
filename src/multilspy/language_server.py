@@ -65,6 +65,7 @@ class LanguageServer:
         Creates a language specific LanguageServer instance based on the given configuration, and appropriate settings for the programming language.
 
         If language is Java, then ensure that jdk-17.0.6 or higher is installed, `java` is in PATH, and JAVA_HOME is set to the installation directory.
+        If language is JS/TS, then ensure that node (v18.16.0 or higher) is installed and in PATH.
 
         :param repository_root_path: The root path of the repository.
         :param config: The Multilspy configuration.
