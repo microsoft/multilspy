@@ -94,7 +94,7 @@ class LanguageServer:
             from multilspy.language_servers.omnisharp.omnisharp import OmniSharp
 
             return OmniSharp(config, logger, repository_root_path)
-        elif config.code_language == Language.TYPESCRIPT:
+        elif config.code_language in [Language.TYPESCRIPT, Language.JAVASCRIPT]:
             from multilspy.language_servers.typescript_language_server.typescript_language_server import (
                 TypeScriptLanguageServer,
             )
@@ -720,53 +720,14 @@ class SyncLanguageServer:
         :return: None
         """
         self.loop = asyncio.new_event_loop()
-        self.loop_thread = threading.Thread(target=self.loop.run_forever, daemon=True)
-        self.loop_thread.start()
+        loop_thread = threading.Thread(target=self.loop.run_forever, daemon=True)
+        loop_thread.start()
         ctx = self.language_server.start_server()
         asyncio.run_coroutine_threadsafe(ctx.__aenter__(), loop=self.loop).result()
-        try:
-            yield self
-        finally:
-            self._shutdown_server(ctx)
-
-    def _shutdown_server(self, ctx):
-        """
-        Helper method to shutdown the server and clean up resources.
-        """
-        # NOTE: Temporary workaround but it seems to work
-        try:
-            self.loop.call_soon_threadsafe(self.loop.stop)
-        except Exception as e:
-            print(f"Error during server shutdown: {e}")
-        # try:
-        #     # Schedule the server shutdown
-        #     future = asyncio.run_coroutine_threadsafe(ctx.__aexit__(None, None, None), loop=self.loop)
-        #     # Wait for the shutdown to complete with a timeout
-        #     future.result(timeout=0.5)
-        # except asyncio.TimeoutError:
-        #     print("Warning: Server shutdown timed out")
-        # except Exception as e:
-        #     print(f"Error during server shutdown: {e}")
-        # finally:
-        #     # Stop the event loop
-        #     self.loop.call_soon_threadsafe(self.loop.stop)
-            
-        #     # Wait for the loop to stop (with a timeout)
-        #     shutdown_timeout = 5
-        #     start_time = time.time()
-        #     while self.loop.is_running() and time.time() - start_time < shutdown_timeout:
-        #         time.sleep(0.1)
-            
-        #     if self.loop.is_running():
-        #         print("Warning: Event loop is still running after timeout")
-            
-        #     # Close the loop
-        #     self.loop.call_soon_threadsafe(self.loop.close)
-            
-        #     # Join the thread (with a timeout)
-        #     self.loop_thread.join(timeout=2)
-        #     if self.loop_thread.is_alive():
-        #         print("Warning: Loop thread is still alive after timeout")
+        yield self
+        asyncio.run_coroutine_threadsafe(ctx.__aexit__(None, None, None), loop=self.loop).result()
+        self.loop.call_soon_threadsafe(self.loop.stop)
+        loop_thread.join()
 
     def request_definition(self, file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
         """
