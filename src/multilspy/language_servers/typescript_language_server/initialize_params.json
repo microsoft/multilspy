@@ -1,4 +1,3 @@
-
 {
     "_description": "The parameters sent by the client when initializing the language server with the \"initialize\" request. More details at https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initialize",
     "processId": "os.getpid()",
@@ -15,10 +14,18 @@
             "workspaceEdit": {
                 "documentChanges": true
             },
-            "didChangeConfiguration": {"dynamicRegistration": true},
-            "didChangeWatchedFiles": {"dynamicRegistration": true},
-            "symbol": {"dynamicRegistration": true},
-            "executeCommand": {"dynamicRegistration": true}
+            "didChangeConfiguration": {
+                "dynamicRegistration": true
+            },
+            "didChangeWatchedFiles": {
+                "dynamicRegistration": true
+            },
+            "symbol": {
+                "dynamicRegistration": true
+            },
+            "executeCommand": {
+                "dynamicRegistration": true
+            }
         },
         "textDocument": {
             "synchronization": {
@@ -33,19 +40,45 @@
                     "snippetSupport": true
                 }
             },
-            "hover": {"dynamicRegistration": true},
-            "signatureHelp": {"dynamicRegistration": true},
-            "definition": {"dynamicRegistration": true},
-            "references": {"dynamicRegistration": true},
-            "documentHighlight": {"dynamicRegistration": true},
-            "documentSymbol": {"dynamicRegistration": true},
-            "formatting": {"dynamicRegistration": true},
-            "rangeFormatting": {"dynamicRegistration": true},
-            "onTypeFormatting": {"dynamicRegistration": true},
-            "rename": {"dynamicRegistration": true},
-            "documentLink": {"dynamicRegistration": true},
-            "codeAction": {"dynamicRegistration": true},
-            "codeLens": {"dynamicRegistration": true}
+            "hover": {
+                "dynamicRegistration": true
+            },
+            "signatureHelp": {
+                "dynamicRegistration": true
+            },
+            "definition": {
+                "dynamicRegistration": true
+            },
+            "references": {
+                "dynamicRegistration": true
+            },
+            "documentHighlight": {
+                "dynamicRegistration": true
+            },
+            "documentSymbol": {
+                "dynamicRegistration": true
+            },
+            "formatting": {
+                "dynamicRegistration": true
+            },
+            "rangeFormatting": {
+                "dynamicRegistration": true
+            },
+            "onTypeFormatting": {
+                "dynamicRegistration": true
+            },
+            "rename": {
+                "dynamicRegistration": true
+            },
+            "documentLink": {
+                "dynamicRegistration": true
+            },
+            "codeAction": {
+                "dynamicRegistration": true
+            },
+            "codeLens": {
+                "dynamicRegistration": true
+            }
         }
     },
     "trace": "verbose",

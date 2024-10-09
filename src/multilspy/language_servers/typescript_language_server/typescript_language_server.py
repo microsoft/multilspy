@@ -4,8 +4,11 @@ Provides TypeScript specific instantiation of the LanguageServer class. Contains
 
 import asyncio
 import json
+import shutil
 import logging
 import os
+import pwd
+import subprocess
 import pathlib
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
@@ -15,8 +18,7 @@ from multilspy.language_server import LanguageServer
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
 from multilspy.multilspy_config import MultilspyConfig
-from multilspy.multilspy_utils import FileUtils
-from multilspy.multilspy_utils import PlatformUtils
+from multilspy.multilspy_utils import PlatformUtils, PlatformId
 
 
 class TypeScriptLanguageServer(LanguageServer):
@@ -26,13 +28,14 @@ class TypeScriptLanguageServer(LanguageServer):
 
     def __init__(self, config: MultilspyConfig, logger: MultilspyLogger, repository_root_path: str):
         """
-        Creates a JediServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
+        Creates a TypeScriptLanguageServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
+        ts_lsp_executable_path = self.setup_runtime_dependencies(logger, config)
         super().__init__(
             config,
             logger,
             repository_root_path,
-            ProcessLaunchInfo(cmd="typescript-language-server --stdio", cwd=repository_root_path),
+            ProcessLaunchInfo(cmd=ts_lsp_executable_path, cwd=repository_root_path),
             "typescript",
         )
         self.server_ready = asyncio.Event()
@@ -41,9 +44,51 @@ class TypeScriptLanguageServer(LanguageServer):
         """
         Setup runtime dependencies for TypeScript Language Server.
         """
-        # TODO: Implement the actual setup for tsserver
-        # This is a placeholder implementation
-        return "tsserver"
+        platform_id = PlatformUtils.get_platform_id()
+
+        valid_platforms = [
+            PlatformId.LINUX_x64, 
+            PlatformId.LINUX_arm64,
+            PlatformId.OSX, 
+            PlatformId.OSX_x64,
+            PlatformId.OSX_arm64,
+            PlatformId.WIN_x64, 
+            PlatformId.WIN_arm64, 
+        ] 
+        assert platform_id in valid_platforms, f"Platform {platform_id} is not supported for multilspy javascript/typescript at the moment"
+
+        with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
+            d = json.load(f)
+            del d["_description"]
+
+        runtime_dependencies = d.get("runtimeDependencies", [])
+        tsserver_ls_dir = os.path.join(os.path.dirname(__file__), "static", "ts-lsp")
+        tsserver_executable_path = os.path.join(tsserver_ls_dir, "typescript-language-server")
+
+        # Verify both node and npm are installed
+        is_node_installed = shutil.which('node') is not None
+        assert is_node_installed, "node is not installed or isn't in PATH. Please install NodeJS and try again."
+        is_npm_installed = shutil.which('npm') is not None
+        assert is_npm_installed, "npm is not installed or isn't in PATH. Please install npm and try again."
+
+        # Install typescript and typescript-language-server if not already installed, as a non-root user
+        if not os.path.exists(tsserver_ls_dir):
+            os.makedirs(tsserver_ls_dir, exist_ok=True)
+            for dependency in runtime_dependencies:
+                user = pwd.getpwuid(os.getuid()).pw_name
+                subprocess.run(
+                    dependency["command"], 
+                    shell=True, 
+                    check=True, 
+                    user=user, 
+                    cwd=tsserver_ls_dir,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+        
+        tsserver_executable_path = os.path.join(tsserver_ls_dir, "node_modules", ".bin", "typescript-language-server")
+        assert os.path.exists(tsserver_executable_path), "typescript-language-server executable not found. Please install typescript-language-server and try again."
+        return f"{tsserver_executable_path} --stdio"
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """
@@ -68,6 +113,7 @@ class TypeScriptLanguageServer(LanguageServer):
         d["workspaceFolders"][0]["name"] = os.path.basename(repository_absolute_path)
 
         return d
+    
     @asynccontextmanager
     async def start_server(self) -> AsyncIterator["TypeScriptLanguageServer"]:
         """
