@@ -1,5 +1,5 @@
 """
-This file contains tests for running the Python Language Server: jedi-language-server
+This file contains tests for running the JavaScript Language Server: typescript-language-server
 """
 
 import pytest

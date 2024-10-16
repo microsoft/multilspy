@@ -165,13 +165,13 @@ class TypeScriptLanguageServer(LanguageServer):
             )
             init_response = await self.server.send.initialize(initialize_params)
             
-            # # TypeScript-specific capability checks
-            # assert init_response["capabilities"]["textDocumentSync"]["change"] == 2
-            # assert "completionProvider" in init_response["capabilities"]
-            # assert init_response["capabilities"]["completionProvider"] == {
-            #     "triggerCharacters": [".", '"', "'", "`", "/", "@", "<"],
-            #     "resolveProvider": True
-            # }
+            # TypeScript-specific capability checks
+            assert init_response["capabilities"]["textDocumentSync"] == 2
+            assert "completionProvider" in init_response["capabilities"]
+            assert init_response["capabilities"]["completionProvider"] == {
+                "triggerCharacters": ['.', '"', "'", '/', '@', '<'],
+                "resolveProvider": True
+            }
             
             self.server.notify.initialized({})
             self.completions_available.set()

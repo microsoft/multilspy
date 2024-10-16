@@ -1,5 +1,5 @@
 """
-This file contains tests for running the Python Language Server: jedi-language-server
+This file contains tests for running the TypeScript Language Server: typescript-language-server
 """
 
 from multilspy import SyncLanguageServer
