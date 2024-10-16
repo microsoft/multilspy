@@ -49,6 +49,6 @@ async def test_multilspy_typescript_trpc():
                 del item["absolutePath"]
 
             assert result == [
-                {'range': {'start': {'line': 231, 'character': 15}, 'end': {'line': 231, 'character': 21}}, 'relativePath': 'packages/server/src/core/router.ts'}, 
-                {'range': {'start': {'line': 264, 'character': 12}, 'end': {'line': 264, 'character': 18}}, 'relativePath': 'packages/server/src/core/router.ts'}
+                {'range': {'start': {'line': 231, 'character': 15}, 'end': {'line': 231, 'character': 21}}, 'relativePath': path}, 
+                {'range': {'start': {'line': 264, 'character': 12}, 'end': {'line': 264, 'character': 18}}, 'relativePath': path}
             ]

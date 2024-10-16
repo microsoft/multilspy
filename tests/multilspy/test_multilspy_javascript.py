@@ -28,81 +28,27 @@ async def test_multilspy_javascript_exceljs():
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         # The context manager is an asynchronous context manager, so it must be used with async with.
         async with lsp.start_server():
-            result = await lsp.request_definition(str(PurePath("src/black/mode.py")), 163, 4)
-
+            path = str(PurePath("lib/csv/csv.js"))
+            result = await lsp.request_definition(path, 108, 3)
             assert isinstance(result, list)
             assert len(result) == 1
+
             item = result[0]
-            assert item["relativePath"] == str(PurePath("src/black/mode.py"))
+            assert item["relativePath"] == path
             assert item["range"] == {
-                "start": {"line": 163, "character": 4},
-                "end": {"line": 163, "character": 20},
+                "start": {"line": 108, "character": 2},
+                "end": {"line": 108, "character": 7},
             }
 
-            result = await lsp.request_references(str(PurePath("src/black/mode.py")), 163, 4)
-
+            result = await lsp.request_references(path, 108, 3)
             assert isinstance(result, list)
-            assert len(result) == 8
+            assert len(result) == 2
 
             for item in result:
                 del item["uri"]
                 del item["absolutePath"]
 
             assert result == [
-                {
-                    "relativePath": str(PurePath("src/black/__init__.py")),
-                    "range": {
-                        "start": {"line": 71, "character": 4},
-                        "end": {"line": 71, "character": 20},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/__init__.py")),
-                    "range": {
-                        "start": {"line": 1105, "character": 11},
-                        "end": {"line": 1105, "character": 27},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/__init__.py")),
-                    "range": {
-                        "start": {"line": 1113, "character": 11},
-                        "end": {"line": 1113, "character": 27},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/mode.py")),
-                    "range": {
-                        "start": {"line": 163, "character": 4},
-                        "end": {"line": 163, "character": 20},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/parsing.py")),
-                    "range": {
-                        "start": {"line": 7, "character": 68},
-                        "end": {"line": 7, "character": 84},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/parsing.py")),
-                    "range": {
-                        "start": {"line": 37, "character": 11},
-                        "end": {"line": 37, "character": 27},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/parsing.py")),
-                    "range": {
-                        "start": {"line": 39, "character": 14},
-                        "end": {"line": 39, "character": 30},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/parsing.py")),
-                    "range": {
-                        "start": {"line": 44, "character": 11},
-                        "end": {"line": 44, "character": 27},
-                    },
-                },
+                {'range': {'start': {'line': 180, 'character': 16}, 'end': {'line': 180, 'character': 21}}, 'relativePath': path},
+                {'range': {'start': {'line': 185, 'character': 15}, 'end': {'line': 185, 'character': 20}}, 'relativePath': path}
             ]

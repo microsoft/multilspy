@@ -23,7 +23,27 @@ def test_sync_multilspy_javascript_exceljs() -> None:
         # All the communication with the language server must be performed inside the context manager
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         with lsp.start_server():
-            # path = "./test-repos/test_js_repo/src/controllers/Auth/Login.ts"
-            # result = lsp.request_document_symbols(path)
-            # print(result)
-            assert 1 == 1
+            path = str(PurePath("lib/csv/csv.js"))
+            result = lsp.request_definition(path, 108, 3)
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+            item = result[0]
+            assert item["relativePath"] == path
+            assert item["range"] == {
+                "start": {"line": 108, "character": 2},
+                "end": {"line": 108, "character": 7},
+            }
+
+            result = lsp.request_references(path, 108, 3)
+            assert isinstance(result, list)
+            assert len(result) == 2
+
+            for item in result:
+                del item["uri"]
+                del item["absolutePath"]
+
+            assert result == [
+                {'range': {'start': {'line': 180, 'character': 16}, 'end': {'line': 180, 'character': 21}}, 'relativePath': path},
+                {'range': {'start': {'line': 185, 'character': 15}, 'end': {'line': 185, 'character': 20}}, 'relativePath': path}
+            ]
