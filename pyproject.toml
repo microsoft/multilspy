@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "multilspy"
-version = "0.0.2"
+version = "0.0.1"
 authors = [
   { name="Lakshya A Agrawal", email="lakshya.aagrawal@gmail.com" },
 ]
@@ -31,8 +31,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/Adrenaline-AI/multilspy"
-"Bug Tracker" = "https://github.com/Adrenaline-AI/multilspy/issues"
+"Homepage" = "https://github.com/microsoft/multilspy"
+"Bug Tracker" = "https://github.com/microsoft/multilspy/issues"
 
 [tool.setuptools]
 include-package-data = true
