@@ -7,15 +7,15 @@ from multilspy.multilspy_config import Language
 from tests.test_utils import create_test_context
 from pathlib import PurePath
 
-def test_multilspy_typescript_ts_language_server() -> None:
+def test_sync_multilspy_typescript_trpc() -> None:
     """
-    Test the working of multilspy with typescript repository - ts-language-server
+    Test the working of multilspy with typescript repository - trpc
     """
     code_language = Language.TYPESCRIPT
     params = {
         "code_language": code_language,
-        "repo_url": "https://github.com/lodash/lodash/",
-        "repo_commit": "6a2cc1d"
+        "repo_url": "https://github.com/trpc/trpc",
+        "repo_commit": "936db6dd2598337758e29c843ff66984ed54faaf"
     }
     with create_test_context(params) as context:
         lsp = SyncLanguageServer.create(context.config, context.logger, context.source_directory)
