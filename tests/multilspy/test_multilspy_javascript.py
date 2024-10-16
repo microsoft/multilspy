@@ -18,7 +18,7 @@ async def test_multilspy_javascript_exceljs():
     code_language = Language.JAVASCRIPT
     params = {
         "code_language": code_language,
-        "repo_url": "https://github.com/exceljs/exceljs",
+        "repo_url": "https://github.com/exceljs/exceljs/",
         "repo_commit": "ac96f9a61e9799c7776bd940f05c4a51d7200209"
     }
     with create_test_context(params) as context:

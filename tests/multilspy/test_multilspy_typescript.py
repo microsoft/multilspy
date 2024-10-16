@@ -18,7 +18,7 @@ async def test_multilspy_typescript_trpc():
     code_language = Language.TYPESCRIPT
     params = {
         "code_language": code_language,
-        "repo_url": "https://github.com/trpc/trpc",
+        "repo_url": "https://github.com/trpc/trpc/",
         "repo_commit": "936db6dd2598337758e29c843ff66984ed54faaf"
     }
     with create_test_context(params) as context:
@@ -28,81 +28,27 @@ async def test_multilspy_typescript_trpc():
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         # The context manager is an asynchronous context manager, so it must be used with async with.
         async with lsp.start_server():
-            result = await lsp.request_definition(str(PurePath("src/black/mode.py")), 163, 4)
-
+            path = str(PurePath("packages/server/src/core/router.ts"))
+            result = await lsp.request_definition(path, 194, 8)
             assert isinstance(result, list)
             assert len(result) == 1
+
             item = result[0]
-            assert item["relativePath"] == str(PurePath("src/black/mode.py"))
+            assert item["relativePath"] == path
             assert item["range"] == {
-                "start": {"line": 163, "character": 4},
-                "end": {"line": 163, "character": 20},
+                "start": {"line": 194, "character": 2},
+                "end": {"line": 194, "character": 8},
             }
 
-            result = await lsp.request_references(str(PurePath("src/black/mode.py")), 163, 4)
-
+            result = await lsp.request_references(path, 194, 8)
             assert isinstance(result, list)
-            assert len(result) == 8
+            assert len(result) == 2
 
             for item in result:
                 del item["uri"]
                 del item["absolutePath"]
 
             assert result == [
-                {
-                    "relativePath": str(PurePath("src/black/__init__.py")),
-                    "range": {
-                        "start": {"line": 71, "character": 4},
-                        "end": {"line": 71, "character": 20},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/__init__.py")),
-                    "range": {
-                        "start": {"line": 1105, "character": 11},
-                        "end": {"line": 1105, "character": 27},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/__init__.py")),
-                    "range": {
-                        "start": {"line": 1113, "character": 11},
-                        "end": {"line": 1113, "character": 27},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/mode.py")),
-                    "range": {
-                        "start": {"line": 163, "character": 4},
-                        "end": {"line": 163, "character": 20},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/parsing.py")),
-                    "range": {
-                        "start": {"line": 7, "character": 68},
-                        "end": {"line": 7, "character": 84},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/parsing.py")),
-                    "range": {
-                        "start": {"line": 37, "character": 11},
-                        "end": {"line": 37, "character": 27},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/parsing.py")),
-                    "range": {
-                        "start": {"line": 39, "character": 14},
-                        "end": {"line": 39, "character": 30},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/black/parsing.py")),
-                    "range": {
-                        "start": {"line": 44, "character": 11},
-                        "end": {"line": 44, "character": 27},
-                    },
-                },
+                {'range': {'start': {'line': 231, 'character': 15}, 'end': {'line': 231, 'character': 21}}, 'relativePath': 'packages/server/src/core/router.ts'}, 
+                {'range': {'start': {'line': 264, 'character': 12}, 'end': {'line': 264, 'character': 18}}, 'relativePath': 'packages/server/src/core/router.ts'}
             ]
