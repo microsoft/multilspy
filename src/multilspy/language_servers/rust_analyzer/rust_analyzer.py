@@ -49,10 +49,10 @@ class RustAnalyzer(LanguageServer):
             d = json.load(f)
             del d["_description"]
 
-        assert platform_id.value in [
-            "linux-x64",
-            "win-x64",
-        ], "Only linux-x64 and win-x64 platform is supported for in multilspy at the moment"
+        # assert platform_id.value in [
+        #     "linux-x64",
+        #     "win-x64",
+        # ], "Only linux-x64 and win-x64 platform is supported for in multilspy at the moment"
 
         runtime_dependencies = d["runtimeDependencies"]
         runtime_dependencies = [
