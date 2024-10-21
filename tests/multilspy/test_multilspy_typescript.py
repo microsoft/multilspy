@@ -52,5 +52,3 @@ async def test_multilspy_typescript_trpc():
                 {'range': {'start': {'line': 231, 'character': 15}, 'end': {'line': 231, 'character': 21}}, 'relativePath': path}, 
                 {'range': {'start': {'line': 264, 'character': 12}, 'end': {'line': 264, 'character': 18}}, 'relativePath': path}
             ]
-
-            print(result)
