@@ -497,7 +497,8 @@ class LanguageServer:
 
             num_retries = 0
             while response is None or (response["isIncomplete"] and num_retries < 30):
-
+                if self.language_id is not Language.PYTHON:
+                    await self.completions_available.wait()
                 response: Union[
                     List[LSPTypes.CompletionItem], LSPTypes.CompletionList, None
                 ] = await self.server.send.completion(completion_params)
