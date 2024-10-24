@@ -74,11 +74,17 @@ class LanguageServer:
         :return LanguageServer: A language specific LanguageServer instance.
         """
         if config.code_language == Language.PYTHON:
-            from multilspy.language_servers.jedi_language_server.jedi_server import (
-                JediServer,
-            )
+            if config.python_server == 'pyright':
+                from multilspy.language_servers.pyright_language_server.pyright_server import (
+                    PyRightServer,
+                )
+                return PyRightServer(config, logger, repository_root_path)
+            else:
+                from multilspy.language_servers.jedi_language_server.jedi_server import (
+                    JediServer,
+                )
+                return JediServer(config, logger, repository_root_path)
 
-            return JediServer(config, logger, repository_root_path)
         elif config.code_language == Language.JAVA:
             from multilspy.language_servers.eclipse_jdtls.eclipse_jdtls import (
                 EclipseJDTLS,
@@ -497,7 +503,7 @@ class LanguageServer:
 
             num_retries = 0
             while response is None or (response["isIncomplete"] and num_retries < 30):
-                if self.language_id is not Language.PYTHON:
+                if self.language_id != 'python':
                     await self.completions_available.wait()
                 response: Union[
                     List[LSPTypes.CompletionItem], LSPTypes.CompletionList, None
