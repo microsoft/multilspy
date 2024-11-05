@@ -41,7 +41,7 @@ class RustAnalyzer(LanguageServer):
 
     def setup_runtime_dependencies(self, logger: MultilspyLogger, config: MultilspyConfig) -> str:
         """
-        Setup runtime dependencies for OmniSharp.
+        Setup runtime dependencies for rust_analyzer.
         """
         platform_id = PlatformUtils.get_platform_id()
 
