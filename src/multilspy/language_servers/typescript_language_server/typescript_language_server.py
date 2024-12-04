@@ -7,7 +7,6 @@ import json
 import shutil
 import logging
 import os
-import pwd
 import subprocess
 import pathlib
 from contextlib import asynccontextmanager
@@ -74,17 +73,29 @@ class TypeScriptLanguageServer(LanguageServer):
         # Install typescript and typescript-language-server if not already installed, as a non-root user
         if not os.path.exists(tsserver_ls_dir):
             os.makedirs(tsserver_ls_dir, exist_ok=True)
-            for dependency in runtime_dependencies:
-                user = pwd.getpwuid(os.getuid()).pw_name
-                subprocess.run(
-                    dependency["command"], 
-                    shell=True, 
-                    check=True, 
-                    user=user, 
-                    cwd=tsserver_ls_dir,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
+            if os.name == 'nt':
+                for dependency in runtime_dependencies:
+                    subprocess.run(
+                        dependency["command"],
+                        shell=True,
+                        check=True,
+                        cwd=tsserver_ls_dir,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+            else:
+                import pwd
+                for dependency in runtime_dependencies:
+                    user = pwd.getpwuid(os.getuid()).pw_name
+                    subprocess.run(
+                        dependency["command"],
+                        shell=True,
+                        check=True,
+                        user=user,
+                        cwd=tsserver_ls_dir,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
         
         tsserver_executable_path = os.path.join(tsserver_ls_dir, "node_modules", ".bin", "typescript-language-server")
         assert os.path.exists(tsserver_executable_path), "typescript-language-server executable not found. Please install typescript-language-server and try again."
