@@ -96,6 +96,22 @@ RuntimeError: Task <Task pending name='Task-2' coro=<_AsyncGeneratorContextManag
 
 Please ensure that you create a new environment with Python ```>=3.10```. For further details, please have a look at the [StackOverflow Discussion](https://stackoverflow.com/questions/73599594/asyncio-works-in-python-3-10-but-not-in-python-3-8).
 
+## Citing Multilspy
+If you're using Multilspy in your research or applications, please cite using this BibTeX:
+```
+@inproceedings{NEURIPS2023_662b1774,
+ author = {Agrawal, Lakshya A and Kanade, Aditya and Goyal, Navin and Lahiri, Shuvendu and Rajamani, Sriram},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {A. Oh and T. Naumann and A. Globerson and K. Saenko and M. Hardt and S. Levine},
+ pages = {32270--32298},
+ publisher = {Curran Associates, Inc.},
+ title = {Monitor-Guided Decoding of Code LMs with Static Analysis of Repository Context},
+ url = {https://proceedings.neurips.cc/paper_files/paper/2023/file/662b1774ba8845fc1fa3d1fc0177ceeb-Paper-Conference.pdf},
+ volume = {36},
+ year = {2023}
+}
+```
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
