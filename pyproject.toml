@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "multilspy"
-version = "0.0.3"
+version = "0.0.1"
 authors = [
   { name="Lakshya A Agrawal", email="lakshya.aagrawal@gmail.com" },
 ]
@@ -21,8 +21,7 @@ classifiers = [
     "Programming Language :: C#",
     "Programming Language :: Java",
     "Programming Language :: Python",
-    "Programming Language :: Rust",
-    "Programming Language :: JavaScript"
+    "Programming Language :: Rust"
 ]
 
 dependencies = [
