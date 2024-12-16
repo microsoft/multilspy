@@ -5,11 +5,11 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "multilspy"
-version = "0.0.1"
+version = "0.0.4"
 authors = [
   { name="Lakshya A Agrawal", email="lakshya.aagrawal@gmail.com" },
 ]
-description = "A language-agnostic LSP client in Python, with a library interface. Intended to be used to build applications around language servers. Currently multilspy supports language servers for Python, Rust, Java and C#. Originally appeared as part of Monitor-Guided Decoding (https://github.com/microsoft/monitors4codegen)"
+description = "A language-agnostic LSP client in Python, with a library interface. Intended to be used to build applications around language servers. Currently multilspy supports language servers for Python, Rust, Java, JavaScript and C#. Originally appeared as part of Monitor-Guided Decoding (https://github.com/microsoft/monitors4codegen)"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -21,7 +21,8 @@ classifiers = [
     "Programming Language :: C#",
     "Programming Language :: Java",
     "Programming Language :: Python",
-    "Programming Language :: Rust"
+    "Programming Language :: Rust",
+    "Programming Language :: JavaScript"
 ]
 
 dependencies = [
