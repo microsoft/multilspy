@@ -16,7 +16,7 @@ def test_multilspy_csharp_ryujinx() -> None:
     code_language = Language.CSHARP
     params = {
         "code_language": code_language,
-        "repo_url": "https://github.com/Ryujinx/Ryujinx/",
+        "repo_url": "https://github.com/LakshyAAAgrawal/Ryujinx/",
         "repo_commit": "e768a54f17b390c3ac10904c7909e3bef020edbd"
     }
     with create_test_context(params) as context:

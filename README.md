@@ -31,7 +31,7 @@ Further details and instructions on creation of python virtual environments can 
 
 To install `multilspy` using pip, execute the following command:
 ```
-pip install https://github.com/microsoft/multilspy/archive/main.zip
+pip install multilspy
 ```
 
 ## Usage
