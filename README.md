@@ -1,3 +1,4 @@
+[![PyPI - Version](https://img.shields.io/pypi/v/multilspy)](https://pypi.org/project/multilspy/)
 # Multilspy: LSP client library in Python to build applications around language servers
 
 ## Introduction
@@ -83,7 +84,13 @@ pytest tests/multilspy
 ```
 
 ## Use of `multilspy` in AI4Code Scenarios like Monitor-Guided Decoding
-`multilspy` provides all the features that language-server-protocol provides to IDEs like VSCode. It is useful to develop toolsets that can interface with AI systems like Large Language Models (LLM). One such usecase is Monitor-Guided Decoding, where `multilspy` is used to find results of static analyses like type-directed completions, to guide the token-by-token generation of code using an LLM, ensuring that all generated identifier/method names are valid in the context of the repository, significantly boosting the compilability of generated code. MGD also demonstrates use of `multilspy` to create monitors that ensure all function calls in LLM generated code receive correct number of arguments, and that functions of an object are called in the right order following a protocol (like not calling "read" before "open" on a file object).
+`multilspy` provides all the features that language-server-protocol provides to IDEs like VSCode. It is useful to develop toolsets that can interface with AI systems like Large Language Models (LLM). 
+### [Monitor-Guided Decoding](https://github.com/microsoft/monitors4codegen)
+One such usecase is Monitor-Guided Decoding, where `multilspy` is used to find results of static analyses like type-directed completions, to guide the token-by-token generation of code using an LLM, ensuring that all generated identifier/method names are valid in the context of the repository, significantly boosting the compilability of generated code. MGD also demonstrates use of `multilspy` to create monitors that ensure all function calls in LLM generated code receive correct number of arguments, and that functions of an object are called in the right order following a protocol (like not calling "read" before "open" on a file object).
+
+### Multilspy in other usecases
+* ["Fix the Tests: Augmenting LLMs to Repair Test Cases with Static Collector and Neural Reranker," in 2024 IEEE 35th International Symposium on Software Reliability Engineering (ISSRE)](https://github.com/SQUARE-RG/SynTeR)
+* [Tutorial on obtaining python completions with multilspy](https://medium.com/@techhara/python-obtain-completions-3db4d2479b82)
 
 ## Frequently Asked Questions (FAQ)
 ### ```asyncio``` related Runtime error when executing the tests for MGD
