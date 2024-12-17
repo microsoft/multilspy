@@ -103,8 +103,6 @@ RuntimeError: Task <Task pending name='Task-2' coro=<_AsyncGeneratorContextManag
 
 Please ensure that you create a new environment with Python ```>=3.10```. For further details, please have a look at the [StackOverflow Discussion](https://stackoverflow.com/questions/73599594/asyncio-works-in-python-3-10-but-not-in-python-3-8).
 
-## 
-
 ## Citing Multilspy
 If you're using Multilspy in your research or applications, please cite using this BibTeX:
 ```
