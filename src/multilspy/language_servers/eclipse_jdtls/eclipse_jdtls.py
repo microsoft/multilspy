@@ -94,7 +94,7 @@ class EclipseJDTLS(LanguageServer):
         ]:
             assert os.path.exists(static_path), static_path
 
-        proc_env = {"syntaxserver": "false"}
+        proc_env = {"syntaxserver": "false", "JAVA_HOME": self.runtime_dependency_paths.jre_home_path}
         proc_cwd = repository_root_path
         cmd = " ".join(
             [
@@ -150,10 +150,12 @@ class EclipseJDTLS(LanguageServer):
 
         os.makedirs(str(PurePath(os.path.abspath(os.path.dirname(__file__)), "static")), exist_ok=True)
 
-        # assert platformId.value in [
-        #     "linux-x64",
-        #     "win-x64",
-        # ], "Only linux-x64 platform is supported for in multilspy at the moment"
+        assert platformId.value in [
+            "linux-x64",
+            "win-x64",
+            "darwin-arm64",
+            "osx-arm64"
+        ], f"platform {str(platformId.value)} is currently not supported in multilspy"
 
         gradle_path = str(
             PurePath(

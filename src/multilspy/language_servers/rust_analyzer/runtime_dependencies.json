@@ -24,6 +24,14 @@
             "platformId": "win-x64",
             "archiveType": "zip",
             "binaryName": "rust-analyzer.exe"
+        },
+        {
+            "id": "RustAnalyzer",
+            "description": "RustAnalyzer for macOS (arm64)",
+            "url": "https://github.com/rust-lang/rust-analyzer/releases/download/2023-10-09/rust-analyzer-aarch64-apple-darwin.gz",
+            "platformId": "darwin-arm64",
+            "archiveType": "gz",
+            "binaryName": "rust-analyzer"
         }
     ]
 }

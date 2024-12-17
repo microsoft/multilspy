@@ -174,6 +174,7 @@ class PlatformId(str, Enum):
     OSX = "osx"
     OSX_x64 = "osx-x64"
     OSX_arm64 = "osx-arm64"
+    DARWIN_arm64 = "darwin-arm64"
     LINUX_x86 = "linux-x86"
     LINUX_x64 = "linux-x64"
     LINUX_arm64 = "linux-arm64"
