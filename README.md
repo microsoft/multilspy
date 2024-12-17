@@ -1,3 +1,4 @@
+[![PyPI - Version](https://img.shields.io/pypi/v/multilspy)](https://pypi.org/project/multilspy/)
 # Multilspy: LSP client library in Python to build applications around language servers
 
 ## Introduction
@@ -31,7 +32,7 @@ Further details and instructions on creation of python virtual environments can 
 
 To install `multilspy` using pip, execute the following command:
 ```
-pip install https://github.com/microsoft/multilspy/archive/main.zip
+pip install multilspy
 ```
 
 ## Usage
@@ -83,7 +84,13 @@ pytest tests/multilspy
 ```
 
 ## Use of `multilspy` in AI4Code Scenarios like Monitor-Guided Decoding
-`multilspy` provides all the features that language-server-protocol provides to IDEs like VSCode. It is useful to develop toolsets that can interface with AI systems like Large Language Models (LLM). One such usecase is Monitor-Guided Decoding, where `multilspy` is used to find results of static analyses like type-directed completions, to guide the token-by-token generation of code using an LLM, ensuring that all generated identifier/method names are valid in the context of the repository, significantly boosting the compilability of generated code. MGD also demonstrates use of `multilspy` to create monitors that ensure all function calls in LLM generated code receive correct number of arguments, and that functions of an object are called in the right order following a protocol (like not calling "read" before "open" on a file object).
+`multilspy` provides all the features that language-server-protocol provides to IDEs like VSCode. It is useful to develop toolsets that can interface with AI systems like Large Language Models (LLM). 
+### [Monitor-Guided Decoding](https://github.com/microsoft/monitors4codegen)
+One such usecase is Monitor-Guided Decoding, where `multilspy` is used to find results of static analyses like type-directed completions, to guide the token-by-token generation of code using an LLM, ensuring that all generated identifier/method names are valid in the context of the repository, significantly boosting the compilability of generated code. MGD also demonstrates use of `multilspy` to create monitors that ensure all function calls in LLM generated code receive correct number of arguments, and that functions of an object are called in the right order following a protocol (like not calling "read" before "open" on a file object).
+
+### Multilspy in other usecases
+* ["Fix the Tests: Augmenting LLMs to Repair Test Cases with Static Collector and Neural Reranker," in 2024 IEEE 35th International Symposium on Software Reliability Engineering (ISSRE)](https://github.com/SQUARE-RG/SynTeR)
+* [Tutorial on obtaining python completions with multilspy](https://medium.com/@techhara/python-obtain-completions-3db4d2479b82)
 
 ## Frequently Asked Questions (FAQ)
 ### ```asyncio``` related Runtime error when executing the tests for MGD
@@ -95,6 +102,22 @@ RuntimeError: Task <Task pending name='Task-2' coro=<_AsyncGeneratorContextManag
 ```
 
 Please ensure that you create a new environment with Python ```>=3.10```. For further details, please have a look at the [StackOverflow Discussion](https://stackoverflow.com/questions/73599594/asyncio-works-in-python-3-10-but-not-in-python-3-8).
+
+## Citing Multilspy
+If you're using Multilspy in your research or applications, please cite using this BibTeX:
+```
+@inproceedings{NEURIPS2023_662b1774,
+ author = {Agrawal, Lakshya A and Kanade, Aditya and Goyal, Navin and Lahiri, Shuvendu and Rajamani, Sriram},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {A. Oh and T. Naumann and A. Globerson and K. Saenko and M. Hardt and S. Levine},
+ pages = {32270--32298},
+ publisher = {Curran Associates, Inc.},
+ title = {Monitor-Guided Decoding of Code LMs with Static Analysis of Repository Context},
+ url = {https://proceedings.neurips.cc/paper_files/paper/2023/file/662b1774ba8845fc1fa3d1fc0177ceeb-Paper-Conference.pdf},
+ volume = {36},
+ year = {2023}
+}
+```
 
 ## Contributing
 
