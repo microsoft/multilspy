@@ -239,9 +239,10 @@ class PlatformUtils:
                 return DotnetVersion.V4
             else:
                 raise MultilspyException("Unknown dotnet version: " + version)
-        except subprocess.CalledProcessError:
+        except (FileNotFoundError, subprocess.CalledProcessError):
             try:
                 result = subprocess.run(["mono", "--version"], capture_output=True, check=True)
                 return DotnetVersion.VMONO
-            except subprocess.CalledProcessError:
+            except (FileNotFoundError, subprocess.CalledProcessError):
                 raise MultilspyException("dotnet or mono not found on the system")
+
