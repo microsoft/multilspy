@@ -429,17 +429,6 @@
                 "relatedDocumentSupport": false
             }
         },
-        "window": {
-            "showMessage": {
-                "messageActionItem": {
-                    "additionalPropertiesSupport": true
-                }
-            },
-            "showDocument": {
-                "support": true
-            },
-            "workDoneProgress": true
-        },
         "general": {
             "staleRequestSupport": {
                 "cancel": true,
