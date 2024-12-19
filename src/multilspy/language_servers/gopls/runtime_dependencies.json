@@ -1,0 +1,11 @@
+{
+    "_description": "Used to download the runtime dependencies for running gopls. Obtained from golang.org/x/tools/gopls@latest",
+    "runtimeDependencies": [
+        {
+            "id": "gopls",
+            "description": "gopls Go Language server package for all platforms. Both x64 and arm64 are supported.",
+            "command": "go install golang.org/x/tools/gopls@latest",
+            "binaryName": "gopls"
+        }
+    ]
+}
