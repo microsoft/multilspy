@@ -5,6 +5,17 @@ Configuration parameters for Multilspy.
 from enum import Enum
 from dataclasses import dataclass, field
 
+
+def update_config(old, new):
+    """
+    Update the old config with the new config.
+    """
+    for key, value in new.items():
+        if key in old and isinstance(old[key], dict) and isinstance(value, dict):
+            update_config(old[key], value)
+        else:
+            old[key] = value
+
 class Language(str, Enum):
     """
     Possible languages with Multilspy.
