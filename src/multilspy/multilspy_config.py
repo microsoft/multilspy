@@ -3,7 +3,7 @@ Configuration parameters for Multilspy.
 """
 
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 class Language(str, Enum):
     """
@@ -27,8 +27,8 @@ class MultilspyConfig:
     """
     code_language: Language
     trace_lsp_communication: bool = False
-    initialize_params: dict = dict()
-    runtime_dependencies: dict = dict()
+    initialize_params: dict = field(default_factory=dict)
+    runtime_dependencies: dict = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, env: dict):
