@@ -246,6 +246,8 @@ class EclipseJDTLS(LanguageServer):
         with open(str(PurePath(os.path.dirname(__file__), "initialize_params.json")), "r") as f:
             d: InitializeParams = json.load(f)
 
+        d.update(self.config.initialize_params)
+
         del d["_description"]
 
         if not os.path.isabs(repository_absolute_path):

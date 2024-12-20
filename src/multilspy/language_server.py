@@ -130,6 +130,8 @@ class LanguageServer:
                 "LanguageServer is an abstract class and cannot be instantiated directly. Use LanguageServer.create method instead."
             )
 
+        self.config = config
+
         self.logger = logger
         self.server_started = False
         self.repository_root_path: str = repository_root_path

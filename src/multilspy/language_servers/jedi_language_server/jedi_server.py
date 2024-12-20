@@ -40,6 +40,8 @@ class JediServer(LanguageServer):
         with open(os.path.join(os.path.dirname(__file__), "initialize_params.json"), "r") as f:
             d = json.load(f)
 
+        d.update(self.config.initialize_params)
+
         del d["_description"]
 
         d["processId"] = os.getpid()

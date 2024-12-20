@@ -27,6 +27,8 @@ class MultilspyConfig:
     """
     code_language: Language
     trace_lsp_communication: bool = False
+    initialize_params: dict = dict()
+    runtime_dependencies: dict = dict()
 
     @classmethod
     def from_dict(cls, env: dict):
