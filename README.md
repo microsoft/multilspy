@@ -2,7 +2,7 @@
 # Multilspy: LSP client library in Python to build applications around language servers
 
 ## Introduction
-This repository hosts multilspy, a library developed as part of research conducted for NeruIPS 2023 paper titled ["Monitor-Guided Decoding of Code LMs with Static Analysis of Repository Context"](https://neurips.cc/virtual/2023/poster/70362) (["Guiding Language Models of Code with Global Context using Monitors"](https://arxiv.org/abs/2306.10763) on Arxiv). The paper introduces Monitor-Guided Decoding (MGD) for code generation using Language Models, where a monitor uses static analysis to guide the decoding, ensuring that the generated code follows various correctness properties, like absence of hallucinated symbol names, valid order of method calls, etc. For further details about Monitor-Guided Decoding, please refer to the paper and GitHub repository [microsoft/monitors4codegen](https://github.com/microsoft/monitors4codegen).
+This repository hosts `multilspy`, a library developed as part of research conducted for NeruIPS 2023 paper titled ["Monitor-Guided Decoding of Code LMs with Static Analysis of Repository Context"](https://neurips.cc/virtual/2023/poster/70362) (["Guiding Language Models of Code with Global Context using Monitors"](https://arxiv.org/abs/2306.10763) on Arxiv). The paper introduces Monitor-Guided Decoding (MGD) for code generation using Language Models, where a monitor uses static analysis to guide the decoding, ensuring that the generated code follows various correctness properties, like absence of hallucinated symbol names, valid order of method calls, etc. For further details about Monitor-Guided Decoding, please refer to the paper and GitHub repository [microsoft/monitors4codegen](https://github.com/microsoft/monitors4codegen).
 
 `multilspy` is a cross-platform library designed to simplify the process of creating language server clients to query and obtain results of various static analyses from a wide variety of language servers that communicate over the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/). It is easily extensible to support any [language that has a Language Server](https://microsoft.github.io/language-server-protocol/implementors/servers/) and currently supports Java, Rust, C# and Python. We aim to continuously add support for more language servers and languages.
 
@@ -14,7 +14,7 @@ This repository hosts multilspy, a library developed as part of research conduct
 * Maintaining and passing hand-tuned server and language specific configuration parameters
 * Providing a simple API to the user, while executing all steps of server-specific protocol steps to execute the query/request.
 
-Some of the analyses results that `multilspy` can provide are:
+Some of the analysis results that `multilspy` can provide are:
 - Finding the definition of a function or a class ([textDocument/definition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition))
 - Finding the callers of a function or the instantiations of a class ([textDocument/references](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_references))
 - Providing type-based dereference completions ([textDocument/completion](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion))
@@ -28,7 +28,7 @@ It is ideal to create a new virtual environment with `python>=3.10`. To create a
 conda create -n multilspy_env python=3.10
 conda activate multilspy_env
 ```
-Further details and instructions on creation of python virtual environments can be found in the [official documentation](https://docs.python.org/3/library/venv.html). Further, we also refer users to [Miniconda](https://docs.conda.io/en/latest/miniconda.html), as an alternative to the above steps for creation of the virtual environment.
+Further details and instructions on creation of Python virtual environments can be found in the [official documentation](https://docs.python.org/3/library/venv.html). Further, we also refer users to [Miniconda](https://docs.conda.io/en/latest/miniconda.html), as an alternative to the above steps for creation of the virtual environment.
 
 To install `multilspy` using pip, execute the following command:
 ```
@@ -91,6 +91,7 @@ One such usecase is Monitor-Guided Decoding, where `multilspy` is used to find r
 ### Multilspy in other usecases
 * ["Fix the Tests: Augmenting LLMs to Repair Test Cases with Static Collector and Neural Reranker," in 2024 IEEE 35th International Symposium on Software Reliability Engineering (ISSRE)](https://github.com/SQUARE-RG/SynTeR)
 * [Tutorial on obtaining python completions with multilspy](https://medium.com/@techhara/python-obtain-completions-3db4d2479b82)
+* Gathering and utilizing repository-wide context for repository-level coding agents
 
 ## Frequently Asked Questions (FAQ)
 ### ```asyncio``` related Runtime error when executing the tests for MGD
