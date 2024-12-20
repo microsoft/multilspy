@@ -13,7 +13,7 @@ from multilspy.multilspy_logger import MultilspyLogger
 from multilspy.language_server import LanguageServer
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
-from multilspy.multilspy_config import MultilspyConfig
+from multilspy.multilspy_config import MultilspyConfig, update_config
 
 
 class JediServer(LanguageServer):
@@ -39,6 +39,8 @@ class JediServer(LanguageServer):
         """
         with open(os.path.join(os.path.dirname(__file__), "initialize_params.json"), "r") as f:
             d = json.load(f)
+
+        update_config(d, self.config.initialize_params)
 
         del d["_description"]
 

@@ -18,7 +18,7 @@ from multilspy.multilspy_logger import MultilspyLogger
 from multilspy.language_server import LanguageServer
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
-from multilspy.multilspy_config import MultilspyConfig
+from multilspy.multilspy_config import MultilspyConfig, update_config
 from multilspy.multilspy_settings import MultilspySettings
 from multilspy.multilspy_utils import FileUtils
 from multilspy.multilspy_utils import PlatformUtils
@@ -245,6 +245,8 @@ class EclipseJDTLS(LanguageServer):
         # Look into https://github.com/eclipse/eclipse.jdt.ls/blob/master/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/preferences/Preferences.java to understand all the options available
         with open(str(PurePath(os.path.dirname(__file__), "initialize_params.json")), "r") as f:
             d: InitializeParams = json.load(f)
+
+        update_config(d, self.config.initialize_params)
 
         del d["_description"]
 
