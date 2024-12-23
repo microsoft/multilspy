@@ -26,7 +26,9 @@ class MultilspyConfig:
     Configuration parameters
     """
     code_language: Language
+    python_server: str = 'jedi'
     trace_lsp_communication: bool = False
+
 
     @classmethod
     def from_dict(cls, env: dict):
