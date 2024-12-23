@@ -110,7 +110,7 @@ class OmniSharp(LanguageServer):
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """
-        Returns the initialize params for the Rust Analyzer Language Server.
+        Returns the initialize params for the Omnisharp Language Server.
         """
         with open(os.path.join(os.path.dirname(__file__), "initialize_params.json"), "r") as f:
             d = json.load(f)
@@ -202,7 +202,7 @@ class OmniSharp(LanguageServer):
     @asynccontextmanager
     async def start_server(self) -> AsyncIterator["OmniSharp"]:
         """
-        Starts the Rust Analyzer Language Server, waits for the server to be ready and yields the LanguageServer instance.
+        Starts the Omnisharp Language Server, waits for the server to be ready and yields the LanguageServer instance.
 
         Usage:
         ```
