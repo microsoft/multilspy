@@ -150,10 +150,10 @@ class EclipseJDTLS(LanguageServer):
 
         os.makedirs(str(PurePath(os.path.abspath(os.path.dirname(__file__)), "static")), exist_ok=True)
 
-        assert platformId.value in [
-            "linux-x64",
-            "win-x64",
-        ], "Only linux-x64 platform is supported for in multilspy at the moment"
+        # assert platformId.value in [
+        #     "linux-x64",
+        #     "win-x64",
+        # ], "Only linux-x64 platform is supported for in multilspy at the moment"
 
         gradle_path = str(
             PurePath(
