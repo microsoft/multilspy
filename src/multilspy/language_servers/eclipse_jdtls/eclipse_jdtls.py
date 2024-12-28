@@ -94,7 +94,8 @@ class EclipseJDTLS(LanguageServer):
         ]:
             assert os.path.exists(static_path), static_path
 
-        proc_env = {"syntaxserver": "false"}
+        # TODO: Add "self.runtime_dependency_paths.jre_home_path"/bin to $PATH as well
+        proc_env = {"syntaxserver": "false", "JAVA_HOME": self.runtime_dependency_paths.jre_home_path}
         proc_cwd = repository_root_path
         cmd = " ".join(
             [
