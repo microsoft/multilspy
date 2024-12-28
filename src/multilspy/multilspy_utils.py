@@ -107,6 +107,9 @@ class FileUtils:
                         return inp_file.read()
                 except UnicodeError:
                     continue
+        except FileNotFoundError as exc:
+            logger.log(f"File'{file_path}' not found: {exc}", logging.ERROR)
+            raise MultilspyException(f"File not found {file_path}") from None
         except Exception as exc:
             logger.log(f"File read '{file_path}' failed: {exc}", logging.ERROR)
             raise MultilspyException("File read failed.") from None
@@ -245,4 +248,3 @@ class PlatformUtils:
                 return DotnetVersion.VMONO
             except (FileNotFoundError, subprocess.CalledProcessError):
                 raise MultilspyException("dotnet or mono not found on the system")
-

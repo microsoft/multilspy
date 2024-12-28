@@ -4,6 +4,8 @@ Configuration parameters for Multilspy.
 
 from enum import Enum
 from dataclasses import dataclass
+from pathlib import Path
+
 
 class Language(str, Enum):
     """
@@ -26,7 +28,12 @@ class MultilspyConfig:
     Configuration parameters
     """
     code_language: Language
+
     trace_lsp_communication: bool = False
+
+    ws_path: Path = None
+
+    temp_workspace: bool = False
 
     @classmethod
     def from_dict(cls, env: dict):

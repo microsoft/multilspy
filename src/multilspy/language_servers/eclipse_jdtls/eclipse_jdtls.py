@@ -14,6 +14,8 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+from typing_extensions import Optional
+
 from multilspy.multilspy_logger import MultilspyLogger
 from multilspy.language_server import LanguageServer
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
@@ -22,7 +24,7 @@ from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_settings import MultilspySettings
 from multilspy.multilspy_utils import FileUtils
 from multilspy.multilspy_utils import PlatformUtils
-from pathlib import PurePath
+from pathlib import PurePath, Path
 
 
 @dataclasses.dataclass
@@ -46,24 +48,39 @@ class EclipseJDTLS(LanguageServer):
     The EclipseJDTLS class provides a Java specific implementation of the LanguageServer class
     """
 
-    def __init__(self, config: MultilspyConfig, logger: MultilspyLogger, repository_root_path: str):
+    NAME: str = "EclipseJDTLS"
+
+    def __init__(self,
+                 config: MultilspyConfig,
+                 logger: MultilspyLogger,
+                 repository_root_path: str):
         """
         Creates a new EclipseJDTLS instance initializing the language server settings appropriately.
         This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
+        self.config = config
+        self.jdtls_home_dir = Path(MultilspySettings.get_language_server_directory()) / EclipseJDTLS.NAME
+        os.makedirs(str(self.jdtls_home_dir), exist_ok=True)
+
+        repo_name = os.path.basename(repository_root_path)
 
         runtime_dependency_paths = self.setupRuntimeDependencies(logger, config)
         self.runtime_dependency_paths = runtime_dependency_paths
 
-        # ws_dir is the workspace directory for the EclipseJDTLS server
-        ws_dir = str(
-            PurePath(
-                MultilspySettings.get_language_server_directory(),
-                "EclipseJDTLS",
-                "workspaces",
-                uuid.uuid4().hex,
-            )
-        )
+        if config.ws_path is None:
+            ws_dir = self.get_workspace_path(repository_root_path)
+            if ws_dir is None:
+                config.ws_path = self.jdtls_home_dir / "workspaces" / f"{repo_name}_{uuid.uuid4().hex}"
+                ws_dir = str(config.ws_path)
+                if not config.temp_workspace:
+                    self.register_workspace(repository_root_path, ws_dir)
+        else:
+            # If the client provided the workspace we ignore the temp_workspace config.
+            config.temp_workspace = False
+            ws_dir = str(config.ws_path)
+            self.register_workspace(repository_root_path, ws_dir)
+
+        os.makedirs(ws_dir, exist_ok=True)
 
         # shared_cache_location is the global cache used by Eclipse JDTLS across all workspaces
         shared_cache_location = str(
@@ -74,8 +91,6 @@ class EclipseJDTLS(LanguageServer):
         lombok_jar_path = self.runtime_dependency_paths.lombok_jar_path
 
         jdtls_launcher_jar = self.runtime_dependency_paths.jdtls_launcher_jar_path
-
-        os.makedirs(ws_dir, exist_ok=True)
 
         data_dir = str(PurePath(ws_dir, "data_dir"))
         jdtls_config_path = str(PurePath(ws_dir, "config_path"))
@@ -138,6 +153,40 @@ class EclipseJDTLS(LanguageServer):
         self.initialize_searcher_command_available = asyncio.Event()
 
         super().__init__(config, logger, repository_root_path, ProcessLaunchInfo(cmd, proc_env, proc_cwd), "java")
+
+
+    def get_workspace_path(self, repo_path: str) -> Optional[str]:
+        ws_table = str(self.jdtls_home_dir / "ws_table")
+        if not os.path.exists(ws_table):
+            return None
+        with open(ws_table, 'r') as f:
+            for line in f:
+                line = line.strip()
+                repo, ws = line.split("=")
+                if repo == repo_path and len(ws) > 0:
+                    return ws
+        return None
+
+    def register_workspace(self, repo_path: str, ws_path: str):
+        ws_tab_path = self.jdtls_home_dir / "ws_table"
+        ws_tab_path.touch(exist_ok=True)
+        ws_table = str(ws_tab_path)
+        j = -1
+        with open(ws_table, 'r+') as f:
+            lines = [l.strip() for l in f.readlines()]
+            for i in range(len(lines)):
+                repo, ws = lines[i].split("=")
+                if repo == repo_path:
+                    j = i
+                    break
+            nline = f"{repo_path}={ws_path}"
+            if j < 0:
+                lines.append(nline)
+            else:
+                lines[j] = nline
+            f.seek(0)
+            f.truncate()
+            f.write("\n".join(lines))
 
     def setupRuntimeDependencies(self, logger: MultilspyLogger, config: MultilspyConfig) -> RuntimeDependencyPaths:
         """
@@ -403,3 +452,6 @@ class EclipseJDTLS(LanguageServer):
 
             await self.server.shutdown()
             await self.server.stop()
+
+            if self.config.temp_workspace and self.config.ws_path.exists():
+                shutil.rmtree(str(self.config.ws_path))
