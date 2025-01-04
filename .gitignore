@@ -398,6 +398,7 @@ FodyWeavers.xsd
 *.sln.iml
 
 src/multilspy/language_servers/eclipse_jdtls/static/
+src/multilspy/language_servers/gopls/static/
 src/multilspy/language_servers/omnisharp/static/
 src/multilspy/language_servers/rust_analyzer/static/
 src/multilspy/language_servers/typescript_language_server/static/
