@@ -423,6 +423,87 @@ class LanguageServer:
 
         return ret
 
+    async def request_type_definition(self, relative_file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
+        """
+        Raise a [textDocument/typeDefinition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_typeDefinition) request to the Language Server
+        for the symbol at the given line and column in the given file. Wait for the response and return the result.
+
+        :param relative_file_path: The relative path of the file that has the symbol for which definition should be looked up
+        :param line: The line number of the symbol
+        :param column: The column number of the symbol
+
+        :return List[multilspy_types.Location]: A list of locations where the symbol is defined
+        """
+
+        if not self.server_started:
+            self.logger.log(
+                "find_function_definition called before Language Server started",
+                logging.ERROR,
+            )
+            raise MultilspyException("Language Server not started")
+
+        with self.open_file(relative_file_path):
+            # sending request to the language server and waiting for response
+            response = await self.server.send.type_definition(
+                {
+                    LSPConstants.TEXT_DOCUMENT: {
+                        LSPConstants.URI: pathlib.Path(
+                            str(PurePath(self.repository_root_path, relative_file_path))
+                        ).as_uri()
+                    },
+                    LSPConstants.POSITION: {
+                        LSPConstants.LINE: line,
+                        LSPConstants.CHARACTER: column,
+                    },
+                }
+            )
+
+        ret: List[multilspy_types.Location] = []
+        if isinstance(response, list):
+            # response is either of type Location[] or LocationLink[]
+            for item in response:
+                assert isinstance(item, dict)
+                if LSPConstants.URI in item and LSPConstants.RANGE in item:
+                    new_item: multilspy_types.Location = {}
+                    new_item.update(item)
+                    new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
+                    new_item["relativePath"] = str(
+                        PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
+                    )
+                    ret.append(multilspy_types.Location(new_item))
+                elif (
+                    LSPConstants.ORIGIN_SELECTION_RANGE in item
+                    and LSPConstants.TARGET_URI in item
+                    and LSPConstants.TARGET_RANGE in item
+                    and LSPConstants.TARGET_SELECTION_RANGE in item
+                ):
+                    new_item: multilspy_types.Location = {}
+                    new_item["uri"] = item[LSPConstants.TARGET_URI]
+                    new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
+                    new_item["relativePath"] = str(
+                        PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
+                    )
+                    new_item["range"] = item[LSPConstants.TARGET_SELECTION_RANGE]
+                    ret.append(multilspy_types.Location(**new_item))
+                else:
+                    assert False, f"Unexpected response from Language Server: {item}"
+        elif isinstance(response, dict):
+            # response is of type Location
+            assert LSPConstants.URI in response
+            assert LSPConstants.RANGE in response
+
+            new_item: multilspy_types.Location = {}
+            new_item.update(response)
+            new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
+            new_item["relativePath"] = str(
+                PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
+            )
+            ret.append(multilspy_types.Location(**new_item))
+        else:
+            assert False, f"Unexpected response from Language Server: {response}"
+
+        return ret
+
     async def request_references(
         self, relative_file_path: str, line: int, column: int
     ) -> List[multilspy_types.Location]:
@@ -643,6 +724,95 @@ class LanguageServer:
 
         return multilspy_types.Hover(**response)
 
+    # Language ID to file extensions mapping
+    LANGUAGE_EXTENSIONS = {
+        "java": {".java"},
+        "python": {".py", ".pyi"},
+        "rust": {".rs"},
+        "csharp": {".cs"},
+        "typescript": {".ts", ".tsx", ".js", ".jsx"},
+    }
+
+    async def load_file(self, file_path: str) -> None:
+        """
+        Load a single file into the Language Server.
+        
+        :param file_path: The absolute path of the file to load
+        :raises MultilspyException: If the server is not started or if there's an error loading the file
+        """
+        if not self.server_started:
+            self.logger.log(
+                "load_file called before Language Server started",
+                logging.ERROR,
+            )
+            raise MultilspyException("Language Server not started")
+
+        try:
+            # Convert to URI and check if already open
+            uri = pathlib.Path(file_path).as_uri()
+            if uri in self.open_file_buffers:
+                return
+
+            # Read file contents
+            contents = FileUtils.read_file(self.logger, file_path)
+            
+            # Create file buffer
+            version = 0
+            self.open_file_buffers[uri] = LSPFileBuffer(uri, contents, version, self.language_id, 1)
+            
+            # Notify language server
+            self.server.notify.did_open_text_document(
+                {
+                    LSPConstants.TEXT_DOCUMENT: {
+                        LSPConstants.URI: uri,
+                        LSPConstants.LANGUAGE_ID: self.language_id,
+                        LSPConstants.VERSION: 0,
+                        LSPConstants.TEXT: contents,
+                    }
+                }
+            )
+        except Exception as e:
+            error_msg = f"Failed to load file {file_path}: {str(e)}"
+            self.logger.log(error_msg, logging.ERROR)
+            raise MultilspyException(error_msg) from e
+
+    async def load_all_workspace_files(self) -> None:
+        """
+        Load all relevant files in the workspace into the Language Server.
+        Uses the default extensions for the current language.
+        """
+        if not self.server_started:
+            self.logger.log(
+                "load_all_workspace_files called before Language Server started",
+                logging.ERROR,
+            )
+            raise MultilspyException("Language Server not started")
+
+        # Get the default extensions for the current language
+        file_extensions = self.LANGUAGE_EXTENSIONS.get(self.language_id)
+        if not file_extensions:
+            self.logger.log(
+                f"No default file extensions found for language {self.language_id}",
+                logging.WARNING,
+            )
+            return
+
+        # Walk through workspace and load matching files
+        tasks = []
+        for root, _, files in os.walk(self.repository_root_path):
+            for file in files:
+                if any(file.endswith(ext) for ext in file_extensions):
+                    try:
+                        file_path = os.path.join(root, file)
+                        tasks.append(self.load_file(file_path))
+                    except MultilspyException:
+                        # Error already logged in load_file
+                        continue
+        
+        # Wait for all files to be loaded
+        if tasks:
+            await asyncio.gather(*tasks)
+
 @ensure_all_methods_implemented(LanguageServer)
 class SyncLanguageServer:
     """
@@ -732,7 +902,7 @@ class SyncLanguageServer:
         self.loop.call_soon_threadsafe(self.loop.stop)
         loop_thread.join()
 
-    def request_definition(self, file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
+    def request_definition(self, relative_file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
         """
         Raise a [textDocument/definition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition) request to the Language Server
         for the symbol at the given line and column in the given file. Wait for the response and return the result.
@@ -744,11 +914,21 @@ class SyncLanguageServer:
         :return List[multilspy_types.Location]: A list of locations where the symbol is defined
         """
         result = asyncio.run_coroutine_threadsafe(
-            self.language_server.request_definition(file_path, line, column), self.loop
+            self.language_server.request_definition(relative_file_path, line, column), self.loop
         ).result()
         return result
 
-    def request_references(self, file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
+    def request_type_definition(self, relative_file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
+        """
+        Raise a [textDocument/typeDefinition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_typeDefinition) request to the Language Server
+        for the symbol at the given line and column in the given file. Wait for the response and return the result.
+        """
+        result = asyncio.run_coroutine_threadsafe(
+            self.language_server.request_type_definition(relative_file_path, line, column), self.loop
+        ).result()
+        return result
+
+    def request_references(self, relative_file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
         """
         Raise a [textDocument/references](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_references) request to the Language Server
         to find references to the symbol at the given line and column in the given file. Wait for the response and return the result.
@@ -760,7 +940,7 @@ class SyncLanguageServer:
         :return List[multilspy_types.Location]: A list of locations where the symbol is referenced
         """
         result = asyncio.run_coroutine_threadsafe(
-            self.language_server.request_references(file_path, line, column), self.loop
+            self.language_server.request_references(relative_file_path, line, column), self.loop
         ).result()
         return result
 
@@ -812,3 +992,23 @@ class SyncLanguageServer:
             self.language_server.request_hover(relative_file_path, line, column), self.loop
         ).result()
         return result
+
+    def load_file(self, file_path: str) -> None:
+        """
+        Load a single file into the Language Server.
+        
+        :param file_path: The absolute path of the file to load
+        :raises MultilspyException: If the server is not started or if there's an error loading the file
+        """
+        asyncio.run_coroutine_threadsafe(
+            self.language_server.load_file(file_path), self.loop
+        ).result()
+
+    def load_all_workspace_files(self) -> None:
+        """
+        Load all relevant files in the workspace into the Language Server.
+        Uses the default extensions for the current language.
+        """
+        asyncio.run_coroutine_threadsafe(
+            self.language_server.load_all_workspace_files(), self.loop
+        ).result()
