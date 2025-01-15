@@ -774,7 +774,6 @@ class LanguageServer:
         except Exception as e:
             error_msg = f"Failed to load file {file_path}: {str(e)}"
             self.logger.log(error_msg, logging.ERROR)
-            raise MultilspyException(error_msg) from e
 
     async def load_all_workspace_files(self) -> None:
         """
