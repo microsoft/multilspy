@@ -57,8 +57,13 @@ class Solargraph(LanguageServer):
 
         # Check if Ruby is installed
         try:
+            result = subprocess.run(["cat", ".ruby-version"], capture_output=True, cwd=repository_root_path)
+            expected_ruby_version = result.stdout.strip()
             result = subprocess.run(["ruby", "--version"], check=True, capture_output=True, cwd=repository_root_path)
-            logger.log(f"Ruby version: {result.stdout.strip()}", logging.INFO)
+            actual_ruby_version = result.stdout.strip()
+            if expected_ruby_version not in actual_ruby_version:
+                raise RuntimeError(f"Expected Ruby version {expected_ruby_version} but found {actual_ruby_version}")
+            logger.log(f"Ruby version: {actual_ruby_version}", logging.INFO)
         except subprocess.CalledProcessError:
             raise RuntimeError("Ruby is not installed. Please install Ruby before continuing.")
         except FileNotFoundError:
