@@ -33,7 +33,7 @@ class Solargraph(LanguageServer):
         Creates a Solargraph instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
         """
-        solargraph_executable_path = self.setup_runtime_dependencies(logger, config)
+        solargraph_executable_path = self.setup_runtime_dependencies(logger, config, repository_root_path)
         super().__init__(
             config,
             logger,
@@ -43,7 +43,7 @@ class Solargraph(LanguageServer):
         )
         self.server_ready = asyncio.Event()
 
-    def setup_runtime_dependencies(self, logger: MultilspyLogger, config: MultilspyConfig) -> str:
+    def setup_runtime_dependencies(self, logger: MultilspyLogger, config: MultilspyConfig, repository_root_path: str) -> str:
         """
         Setup runtime dependencies for Solargraph.
         """
@@ -57,7 +57,8 @@ class Solargraph(LanguageServer):
 
         # Check if Ruby is installed
         try:
-            subprocess.run(["ruby", "--version"], check=True, capture_output=True)
+            result = subprocess.run(["ruby", "--version"], check=True, capture_output=True, cwd=repository_root_path)
+            logger.log(f"Ruby version: {result.stdout.strip()}", logging.INFO)
         except subprocess.CalledProcessError:
             raise RuntimeError("Ruby is not installed. Please install Ruby before continuing.")
         except FileNotFoundError:
@@ -65,16 +66,16 @@ class Solargraph(LanguageServer):
 
         # Check if solargraph is installed
         try:
-            result = subprocess.run(["gem", "list", "^solargraph$", "-i"], check=True, capture_output=True, text=True)
+            result = subprocess.run(["gem", "list", "^solargraph$", "-i"], check=True, capture_output=True, text=True, cwd=repository_root_path)
             if result.stdout.strip() == "false":
-                logger.info("Installing Solargraph...")
+                logger.log("Installing Solargraph...", logging.INFO)
                 subprocess.run(dependency["installCommand"].split(), check=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to check or install Solargraph. {e}")
 
         # Get the solargraph executable path
         try:
-            result = subprocess.run(["which", "solargraph"], check=True, capture_output=True, text=True)
+            result = subprocess.run(["which", "solargraph"], check=True, capture_output=True, text=True, cwd=repository_root_path)
             executeable_path = result.stdout.strip()
             
             if not os.path.exists(executeable_path):
@@ -82,7 +83,7 @@ class Solargraph(LanguageServer):
             
             # Ensure the executable has the right permissions
             os.chmod(executeable_path, os.stat(executeable_path).st_mode | stat.S_IEXEC)
-            
+
             return executeable_path
         except subprocess.CalledProcessError:
             raise RuntimeError("Failed to locate Solargraph executable.")
@@ -147,10 +148,6 @@ class Solargraph(LanguageServer):
         async def do_nothing(params):
             return
 
-        async def check_experimental_status(params):
-            if params["quiescent"] == True:
-                self.server_ready.set()
-
         async def window_log_message(msg):
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
 
@@ -161,7 +158,6 @@ class Solargraph(LanguageServer):
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
-        self.server.on_notification("experimental/serverStatus", check_experimental_status)
 
         async with super().start_server():
             self.logger.log("Starting RubyAnalyzer server process", logging.INFO)
@@ -179,12 +175,12 @@ class Solargraph(LanguageServer):
             assert "completionProvider" in init_response["capabilities"]
             assert init_response["capabilities"]["completionProvider"] == {
                 "resolveProvider": True,
-                "triggerCharacters": [":", ".", "'", "("],
-                "completionItem": {"labelDetailsSupport": True},
+                "triggerCharacters": [".", ":", "@"],
             }
             self.server.notify.initialized({})
             self.completions_available.set()
 
+            self.server_ready.set()
             await self.server_ready.wait()
 
             yield self
