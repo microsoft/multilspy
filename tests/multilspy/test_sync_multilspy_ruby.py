@@ -9,6 +9,66 @@ from multilspy.multilspy_config import Language
 from tests.test_utils import create_test_context
 from pathlib import PurePath
 
+EXPECTED_RESULT = [
+    {
+        "range": {
+            "start": {"line": 11, "character": 20},
+            "end": {"line": 11, "character": 24},
+        },
+        "relativePath": "app/controllers/feed_controller.rb",
+    },
+    {
+        "range": {
+            "start": {"line": 27, "character": 46},
+            "end": {"line": 27, "character": 50},
+        },
+        "relativePath": "app/controllers/feed_controller.rb",
+    },
+    {
+        "range": {
+            "start": {"line": 0, "character": 6},
+            "end": {"line": 0, "character": 10},
+        },
+        "relativePath": "app/models/feed.rb",
+    },
+    {
+        "range": {
+            "start": {"line": 13, "character": 74},
+            "end": {"line": 13, "character": 78},
+        },
+        "relativePath": "app/updaters/feed_updater.rb",
+    },
+    {
+        "range": {
+            "start": {"line": 52, "character": 4},
+            "end": {"line": 52, "character": 8},
+        },
+        "relativePath": "app/updaters/feed_updater.rb",
+    },
+    {
+        "range": {
+            "start": {"line": 10, "character": 20},
+            "end": {"line": 10, "character": 24},
+        },
+        "relativePath": "app/updaters/updater.rb",
+    },
+    {
+        "range": {
+            "start": {"line": 14, "character": 20},
+            "end": {"line": 14, "character": 24},
+        },
+        "relativePath": "app/updaters/updater.rb",
+    },
+    {
+        "range": {
+            "start": {"line": 0, "character": 6},
+            "end": {"line": 0, "character": 10},
+        },
+        "relativePath": "db/migrate/20161029161855_feed.rb",
+    },
+]
+
+
 def test_multilspy_ruby_rubyland() -> None:
     """
     Test the working of multilspy with ruby repository - rubyland
@@ -47,62 +107,5 @@ def test_multilspy_ruby_rubyland() -> None:
             case = unittest.TestCase()
             case.assertCountEqual(
                 result,
-                [
-                    {
-                        "range": {
-                            "start": {"line": 11, "character": 20},
-                            "end": {"line": 11, "character": 24},
-                        },
-                        "relativePath": "app/controllers/feed_controller.rb",
-                    },
-                    {
-                        "range": {
-                            "start": {"line": 27, "character": 46},
-                            "end": {"line": 27, "character": 50},
-                        },
-                        "relativePath": "app/controllers/feed_controller.rb",
-                    },
-                    {
-                        "range": {
-                            "start": {"line": 0, "character": 6},
-                            "end": {"line": 0, "character": 10},
-                        },
-                        "relativePath": "app/models/feed.rb",
-                    },
-                    {
-                        "range": {
-                            "start": {"line": 13, "character": 74},
-                            "end": {"line": 13, "character": 78},
-                        },
-                        "relativePath": "app/updaters/feed_updater.rb",
-                    },
-                    {
-                        "range": {
-                            "start": {"line": 52, "character": 4},
-                            "end": {"line": 52, "character": 8},
-                        },
-                        "relativePath": "app/updaters/feed_updater.rb",
-                    },
-                    {
-                        "range": {
-                            "start": {"line": 10, "character": 20},
-                            "end": {"line": 10, "character": 24},
-                        },
-                        "relativePath": "app/updaters/updater.rb",
-                    },
-                    {
-                        "range": {
-                            "start": {"line": 14, "character": 20},
-                            "end": {"line": 14, "character": 24},
-                        },
-                        "relativePath": "app/updaters/updater.rb",
-                    },
-                    {
-                        "range": {
-                            "start": {"line": 0, "character": 6},
-                            "end": {"line": 0, "character": 10},
-                        },
-                        "relativePath": "db/migrate/20161029161855_feed.rb",
-                    },
-                ]
+                EXPECTED_RESULT,
             )
