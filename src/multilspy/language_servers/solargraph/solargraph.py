@@ -19,7 +19,7 @@ from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_utils import FileUtils
-from multilspy.multilspy_utils import PlatformUtils
+from multilspy.multilspy_utils import PlatformUtils, PlatformId
 
 
 class Solargraph(LanguageServer):
@@ -48,6 +48,11 @@ class Solargraph(LanguageServer):
         Setup runtime dependencies for Solargraph.
         """
         platform_id = PlatformUtils.get_platform_id()
+        cat_cmd = "cat"
+        which_cmd = "which"
+        if platform_id in [PlatformId.WIN_x64, PlatformId.WIN_arm64, PlatformId.WIN_x86]:
+            cat_cmd = "type"
+            which_cmd = "where"
 
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
             d = json.load(f)
@@ -57,7 +62,7 @@ class Solargraph(LanguageServer):
 
         # Check if Ruby is installed
         try:
-            result = subprocess.run(["cat", ".ruby-version"], capture_output=True, cwd=repository_root_path)
+            result = subprocess.run([cat_cmd, ".ruby-version"], capture_output=True, cwd=repository_root_path)
             expected_ruby_version = result.stdout.strip()
             result = subprocess.run(["ruby", "--version"], check=True, capture_output=True, cwd=repository_root_path)
             actual_ruby_version = result.stdout.strip()
@@ -80,7 +85,7 @@ class Solargraph(LanguageServer):
 
         # Get the solargraph executable path
         try:
-            result = subprocess.run(["which", "solargraph"], check=True, capture_output=True, text=True, cwd=repository_root_path)
+            result = subprocess.run([which_cmd, "solargraph"], check=True, capture_output=True, text=True, cwd=repository_root_path)
             executeable_path = result.stdout.strip()
             
             if not os.path.exists(executeable_path):
