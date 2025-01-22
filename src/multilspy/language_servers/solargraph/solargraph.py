@@ -113,9 +113,9 @@ class Solargraph(LanguageServer):
         return d
 
     @asynccontextmanager
-    async def start_server(self) -> AsyncIterator["RubyAnalyzer"]:
+    async def start_server(self) -> AsyncIterator["Solargraph"]:
         """
-        Starts the Ruby Analyzer Language Server, waits for the server to be ready and yields the LanguageServer instance.
+        Starts the Solargraph Language Server for Ruby, waits for the server to be ready and yields the LanguageServer instance.
 
         Usage:
         ```
@@ -160,7 +160,7 @@ class Solargraph(LanguageServer):
         self.server.on_notification("language/actionableNotification", do_nothing)
 
         async with super().start_server():
-            self.logger.log("Starting RubyAnalyzer server process", logging.INFO)
+            self.logger.log("Starting solargraph server process", logging.INFO)
             await self.server.start()
             initialize_params = self._get_initialize_params(self.repository_root_path)
 

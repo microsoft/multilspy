@@ -1,5 +1,5 @@
 """
-This file contains tests for running the Ruby Language Server: ruby-analyzer
+This file contains tests for running the Ruby Language Server: solargraph
 """
 
 import unittest
