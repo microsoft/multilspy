@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import pathlib
+import subprocess
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -18,7 +19,58 @@ class Gopls(LanguageServer):
     Provides Go specific instantiation of the LanguageServer class using gopls.
     """
 
+    @staticmethod
+    def _get_go_version():
+        """Get the installed Go version or None if not found."""
+        try:
+            result = subprocess.run(['go', 'version'], capture_output=True, text=True)
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except FileNotFoundError:
+            return None
+        return None
+
+    @staticmethod
+    def _get_gopls_version():
+        """Get the installed gopls version or None if not found."""
+        try:
+            result = subprocess.run(['gopls', 'version'], capture_output=True, text=True)
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except FileNotFoundError:
+            return None
+        return None
+
+    @classmethod
+    def setup_runtime_dependency(cls):
+        """
+        Check if required Go runtime dependencies are available.
+        Raises RuntimeError with helpful message if dependencies are missing.
+        """
+        missing_deps = []
+        
+        # Check for Go installation
+        go_version = cls._get_go_version()
+        if not go_version:
+            missing_deps.append(("Go", "https://golang.org/doc/install"))
+        
+        # Check for gopls
+        gopls_version = cls._get_gopls_version()
+        if not gopls_version:
+            missing_deps.append(("gopls", "https://pkg.go.dev/golang.org/x/tools/gopls#section-readme"))
+        
+        if missing_deps:
+            error_msg = "Missing required dependencies:\n"
+            for dep, install_url in missing_deps:
+                error_msg += f"- {dep}: Please install from {install_url}\n"
+            raise RuntimeError(error_msg)
+        
+        return True
+
     def __init__(self, config: MultilspyConfig, logger: MultilspyLogger, repository_root_path: str):
+        # Check runtime dependencies before initializing
+        self.setup_runtime_dependency()
+        
         super().__init__(
             config,
             logger,
