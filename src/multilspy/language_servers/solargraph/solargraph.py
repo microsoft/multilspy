@@ -48,10 +48,8 @@ class Solargraph(LanguageServer):
         Setup runtime dependencies for Solargraph.
         """
         platform_id = PlatformUtils.get_platform_id()
-        cat_cmd = "cat"
         which_cmd = "which"
         if platform_id in [PlatformId.WIN_x64, PlatformId.WIN_arm64, PlatformId.WIN_x86]:
-            cat_cmd = "type"
             which_cmd = "where"
 
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
@@ -62,15 +60,11 @@ class Solargraph(LanguageServer):
 
         # Check if Ruby is installed
         try:
-            result = subprocess.run([cat_cmd, ".ruby-version"], capture_output=True, cwd=repository_root_path)
-            expected_ruby_version = result.stdout.strip()
             result = subprocess.run(["ruby", "--version"], check=True, capture_output=True, cwd=repository_root_path)
-            actual_ruby_version = result.stdout.strip()
-            if expected_ruby_version not in actual_ruby_version:
-                raise RuntimeError(f"Expected Ruby version {expected_ruby_version} but found {actual_ruby_version}")
-            logger.log(f"Ruby version: {actual_ruby_version}", logging.INFO)
-        except subprocess.CalledProcessError:
-            raise RuntimeError("Ruby is not installed. Please install Ruby before continuing.")
+            ruby_version = result.stdout.strip()
+            logger.log(f"Ruby version: {ruby_version}", logging.INFO)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Error checking for Ruby installation: {e.stderr}")
         except FileNotFoundError:
             raise RuntimeError("Ruby is not installed. Please install Ruby before continuing.")
 
