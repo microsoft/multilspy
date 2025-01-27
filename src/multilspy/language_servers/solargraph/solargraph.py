@@ -70,7 +70,7 @@ class Solargraph(LanguageServer):
 
         # Check if solargraph is installed
         try:
-            result = subprocess.run(["gem", "list", "^solargraph$", "-i"], check=True, capture_output=True, text=True, cwd=repository_root_path)
+            result = subprocess.run(["gem", "list", "^solargraph$", "-i"], check=False, capture_output=True, text=True, cwd=repository_root_path)
             if result.stdout.strip() == "false":
                 logger.log("Installing Solargraph...", logging.INFO)
                 subprocess.run(dependency["installCommand"].split(), check=True)
