@@ -34,6 +34,3 @@ jobs:
       run: |
         pip install pytest
         pytest tests/multilspy
-    - name: Debug test failures
-      if: ${{ failure() }}
-      uses: mxschmitt/action-tmate@v3
