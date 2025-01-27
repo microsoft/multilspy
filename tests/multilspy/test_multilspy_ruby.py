@@ -31,6 +31,13 @@ async def test_multilspy_ruby_rubyland():
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         # The context manager is an asynchronous context manager, so it must be used with async with.
         async with lsp.start_server():
+            result = await lsp.request_document_symbols(str(PurePath("app/controllers/application_controller.rb")))
+
+            assert isinstance(result, tuple)
+            assert len(result) == 2
+            symbol_names = list(map(lambda x: x["name"], result[0]))
+            assert symbol_names == ['ApplicationController', 'protected_demo_authentication']
+
             result = await lsp.request_definition(str(PurePath("app/controllers/feed_controller.rb")), 11, 23)
 
             assert isinstance(result, list)
