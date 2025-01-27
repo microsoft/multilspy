@@ -75,7 +75,7 @@ class Solargraph(LanguageServer):
                 logger.log("Installing Solargraph...", logging.INFO)
                 subprocess.run(dependency["installCommand"].split(), check=True)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to check or install Solargraph. {e}")
+            raise RuntimeError(f"Failed to check or install Solargraph. {e.stderr}")
 
         # Get the solargraph executable path
         try:
