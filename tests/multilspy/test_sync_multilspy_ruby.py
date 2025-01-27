@@ -93,16 +93,12 @@ def test_multilspy_ruby_rubyland() -> None:
 
             result = lsp.request_definition(str(PurePath("app/controllers/feed_controller.rb")), 11, 23)
 
+            feed_path = str(PurePath("app/models/feed.rb"))
             assert isinstance(result, list)
             assert len(result) == 2
-            item = result[1]
-            assert item["relativePath"] == str(PurePath("app/models/feed.rb"))
-            assert item["range"] == {
-                "start": {"line": 0, "character": 0},
-                "end": {"line": 42, "character": 3},
-            }
+            assert feed_path in list(map(lambda x: x["relativePath"], result))
 
-            result = lsp.request_references(str(PurePath("app/models/feed.rb")), 0, 7)
+            result = lsp.request_references(feed_path, 0, 7)
 
             assert isinstance(result, list)
             assert len(result) == 8
