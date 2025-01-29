@@ -27,7 +27,7 @@ classifiers = [
 
 dependencies = [
   "jedi-language-server==0.41.1",
-  "pydantic==1.10.5",
+  "pydantic==2.10.0",
   "requests==2.32.3"
 ]
 
