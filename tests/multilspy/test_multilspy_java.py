@@ -489,6 +489,6 @@ async def test_multilspy_java_example_repo_prepare_and_incoming_call_hierarchy()
 
             # recursively get one more depth in incoming call hierarchy
             incoming_call_dep_two = await lsp.request_incoming_calls(incoming_call_dep_one[0])
-            print(incoming_call_dep_two)
+
             assert len(incoming_call_dep_two) == 1
             assert incoming_call_dep_two[0]['name'] == 'flushToClickHouse(ClickHouseSinkRequest, CompletableFuture<Boolean>) : void'
