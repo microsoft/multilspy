@@ -649,6 +649,55 @@ class LanguageServer:
 
         return multilspy_types.Hover(**response)
 
+    async def request_prepare_call_hierarchy(self, relative_file_path: str, line: int, column: int) -> List[multilspy_types.CallHierarchyItem]:
+        """
+        Raise a [textDocument/prepareCallHierarchy](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_prepareCallHierarchy) request to the Language Server
+        to prepare the call hierarchy at the given line and column in the given file. Wait for the response and return the result.
+
+        :param relative_file_path: The relative path of the file that contains the target symbol
+        :param line: The line number of the symbol
+        :param column: The column number of the symbol
+
+        :return List[multilspy_types.CallHierarchyItem]: A list of call hierarchy items
+        """
+        with self.open_file(relative_file_path):
+            response = await self.server.send.prepare_call_hierarchy(
+                {
+                    "textDocument": {
+                        "uri": pathlib.Path(os.path.join(self.repository_root_path, relative_file_path)).as_uri()
+                    },
+                    "position": {
+                        "line": line,
+                        "character": column,
+                    },
+                }
+            )
+
+        if response is None:
+            return []
+
+        assert isinstance(response, list)
+
+        return [multilspy_types.CallHierarchyItem(**item) for item in response]
+
+    async def request_incoming_calls(self, req_call_item: multilspy_types.CallHierarchyItem) -> List[multilspy_types.CallHierarchyItem]:
+        """
+        Raise a [callHierarchy/incomingCalls](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#callHierarchy_incomingCalls) request to the Language Server
+        to find the incoming calls(one depth) to the given call hierarchy item. Wait for the response and return the result.
+
+        :param req_call_item: The call hierarchy item for which incoming calls should be looked up
+
+        :return List[multilspy_types.CallHierarchyItem]: A list of call hierarchy items
+        """
+        incoming_call_response =  await self.server.send.incoming_calls(
+            {
+                "item": req_call_item
+            }
+        )
+
+        return [multilspy_types.CallHierarchyItem(**item["from"]) for item in incoming_call_response]
+
+
 @ensure_all_methods_implemented(LanguageServer)
 class SyncLanguageServer:
     """
@@ -816,5 +865,35 @@ class SyncLanguageServer:
         """
         result = asyncio.run_coroutine_threadsafe(
             self.language_server.request_hover(relative_file_path, line, column), self.loop
+        ).result()
+        return result
+
+    def request_prepare_call_hierarchy(self, relative_file_path: str, line: int, column: int) -> List[multilspy_types.CallHierarchyItem]:
+        """
+        Raise a [textDocument/prepareCallHierarchy](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_prepareCallHierarchy) request to the Language Server
+        to prepare the call hierarchy at the given line and column in the given file. Wait for the response and return the result.
+
+        :param relative_file_path: The relative path of the file that contains the target symbol
+        :param line: The line number of the symbol
+        :param column: The column number of the symbol
+
+        :return List[multilspy_types.CallHierarchyItem]: A list of call hierarchy items
+        """
+        result = asyncio.run_coroutine_threadsafe(
+            self.language_server.request_prepare_call_hierarchy(relative_file_path, line, column), self.loop
+        ).result()
+        return result
+
+    def request_incoming_calls(self, req_call_item: multilspy_types.CallHierarchyItem) -> List[multilspy_types.CallHierarchyItem]:
+        """
+        Raise a [callHierarchy/incomingCalls](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#callHierarchy_incomingCalls) request to the Language Server
+        to find the incoming calls(one depth) to the given call hierarchy item. Wait for the response and return the result.
+
+        :param req_call_item: The call hierarchy item for which incoming calls should be looked up
+
+        :return List[multilspy_types.CallHierarchyItem]: A list of call hierarchy items
+        """
+        result = asyncio.run_coroutine_threadsafe(
+            self.language_server.request_incoming_calls(req_call_item), self.loop
         ).result()
         return result

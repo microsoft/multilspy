@@ -281,3 +281,24 @@ class Hover(TypedDict):
     range: NotRequired["Range"]
     """ An optional range inside the text document that is used to
     visualize the hover, e.g. by changing the background color. """
+
+class CallHierarchyItem(TypedDict):
+    """Represents a call hierarchy item."""
+
+    name: str
+    """ The name of this item. """
+    kind: SymbolKind
+    """ The kind of this item. """
+    tags: NotRequired[List[SymbolTag]]
+    """ Tags for this item. """
+    detail: NotRequired[str]
+    """ More detail for this item, e.g the package and class name of the symbol. """
+    uri: DocumentUri
+    """ The resource identifier of this item. """
+    range: Range
+    """ The range enclosing this symbol not including leading/trailing whitespace but everything else
+    like comments. This information is typically used to determine if the clients cursor is
+    inside the symbol to reveal in the symbol in the UI. """
+    selectionRange: Range
+    """ The range that should be selected and revealed when this symbol is being picked, e.g the name of a function.
+    Must be contained by the `range`. """
