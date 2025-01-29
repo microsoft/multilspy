@@ -4,9 +4,8 @@ Multilspy logger module.
 import inspect
 import logging
 from datetime import datetime
-from pydantic import BaseModel
 
-class LogLine(BaseModel):
+class LogLine:
     """
     Represents a line in the Multilspy log
     """
