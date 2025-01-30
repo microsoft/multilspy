@@ -2,20 +2,22 @@
 Multilspy logger module.
 """
 import inspect
+import json
 import logging
 from datetime import datetime
 
-class LogLine:
+class LogLine():
     """
     Represents a line in the Multilspy log
     """
 
-    time: str
-    level: str
-    caller_file: str
-    caller_name: str
-    caller_line: int
-    message: str
+    def __init__(self, time: str, level: str, caller_file: str, caller_name: str, caller_line: int, message: str) -> None:
+        self.time = time
+        self.level = level
+        self.caller_file = caller_file
+        self.caller_name = caller_name
+        self.caller_line = caller_line
+        self.message = message
 
 class MultilspyLogger:
     """
@@ -53,5 +55,5 @@ class MultilspyLogger:
 
         self.logger.log(
             level=level,
-            msg=debug_log_line.json(),
+            msg=json.dumps(debug_log_line),
         )
