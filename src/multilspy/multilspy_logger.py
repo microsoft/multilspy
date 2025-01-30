@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime
 
-class LogLine():
+class LogLine:
     """
     Represents a line in the Multilspy log
     """
@@ -18,6 +18,20 @@ class LogLine():
         self.caller_name = caller_name
         self.caller_line = caller_line
         self.message = message
+
+    def to_dict(self) -> dict:
+        """
+        Convert the log line to a dictionary
+        """
+
+        return {
+            "time": self.time,
+            "level": self.level,
+            "caller_file": self.caller_file,
+            "caller_name": self.caller_name,
+            "caller_line": self.caller_line,
+            "message": self.message,
+        }
 
 class MultilspyLogger:
     """
@@ -55,5 +69,5 @@ class MultilspyLogger:
 
         self.logger.log(
             level=level,
-            msg=json.dumps(debug_log_line),
+            msg=json.dumps(debug_log_line.to_dict()),
         )
