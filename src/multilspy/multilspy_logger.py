@@ -5,33 +5,19 @@ import inspect
 import json
 import logging
 from datetime import datetime
+from typing import TypedDict
 
-class LogLine:
+class LogLine(TypedDict):
     """
     Represents a line in the Multilspy log
     """
 
-    def __init__(self, time: str, level: str, caller_file: str, caller_name: str, caller_line: int, message: str) -> None:
-        self.time = time
-        self.level = level
-        self.caller_file = caller_file
-        self.caller_name = caller_name
-        self.caller_line = caller_line
-        self.message = message
-
-    def to_dict(self) -> dict:
-        """
-        Convert the log line to a dictionary
-        """
-
-        return {
-            "time": self.time,
-            "level": self.level,
-            "caller_file": self.caller_file,
-            "caller_name": self.caller_name,
-            "caller_line": self.caller_line,
-            "message": self.message,
-        }
+    time: str
+    level: str
+    caller_file: str
+    caller_name: str
+    caller_line: int
+    message: str
 
 class MultilspyLogger:
     """
@@ -64,10 +50,10 @@ class MultilspyLogger:
             caller_file=caller_file,
             caller_name=caller_name,
             caller_line=caller_line,
-            message=debug_message,
+            message=debug_message
         )
 
         self.logger.log(
             level=level,
-            msg=json.dumps(debug_log_line.to_dict()),
+            msg=json.dumps(debug_log_line),
         )
