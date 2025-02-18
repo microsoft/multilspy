@@ -106,6 +106,14 @@ class LanguageServer:
                 TypeScriptLanguageServer,
             )
             return TypeScriptLanguageServer(config, logger, repository_root_path)
+        elif config.code_language == Language.GO:
+            from multilspy.language_servers.gopls.gopls import Gopls
+
+            return Gopls(config, logger, repository_root_path)
+        elif config.code_language == Language.RUBY:
+            from multilspy.language_servers.solargraph.solargraph import Solargraph
+
+            return Solargraph(config, logger, repository_root_path)
         else:
             logger.log(f"Language {config.code_language} is not supported", logging.ERROR)
             raise MultilspyException(f"Language {config.code_language} is not supported")
