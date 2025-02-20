@@ -5,7 +5,7 @@ Defines wrapper objects around the types returned by LSP to ensure decoupling be
 from __future__ import annotations
 
 from enum import IntEnum, Enum
-from typing import NotRequired, TypedDict, List, Dict, Union
+from typing_extensions import NotRequired, TypedDict, List, Dict, Union
 
 URI = str
 DocumentUri = str

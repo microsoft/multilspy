@@ -5,7 +5,7 @@ import inspect
 import json
 import logging
 from datetime import datetime
-from typing import TypedDict
+from typing_extensions import TypedDict
 
 class LogLine(TypedDict):
     """

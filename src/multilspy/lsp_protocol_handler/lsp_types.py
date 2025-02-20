@@ -31,7 +31,7 @@ SOFTWARE.
 
 from enum import Enum, IntEnum, IntFlag
 from typing import Dict, List, Literal, Union
-from typing import NotRequired, TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 URI = str
 DocumentUri = str
