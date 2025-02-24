@@ -2,11 +2,12 @@
 Multilspy logger module.
 """
 import inspect
+import json
 import logging
 from datetime import datetime
-from pydantic import BaseModel
+from typing_extensions import TypedDict
 
-class LogLine(BaseModel):
+class LogLine(TypedDict):
     """
     Represents a line in the Multilspy log
     """
@@ -49,10 +50,10 @@ class MultilspyLogger:
             caller_file=caller_file,
             caller_name=caller_name,
             caller_line=caller_line,
-            message=debug_message,
+            message=debug_message
         )
 
         self.logger.log(
             level=level,
-            msg=debug_log_line.json(),
+            msg=json.dumps(debug_log_line),
         )
