@@ -8,7 +8,7 @@ from tests.test_utils import create_test_context
 from pathlib import PurePath
 
 
-def test_multilspy_python_black() -> None:
+def test_sync_multilspy_dart() -> None:
     """
     Test the working of multilspy with python repository - black
     """
