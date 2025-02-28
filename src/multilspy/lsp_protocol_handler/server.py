@@ -32,6 +32,7 @@ import asyncio
 import dataclasses
 import json
 import os
+import psutil
 from typing import Any, Dict, List, Optional, Union
 
 from .lsp_requests import LspNotification, LspRequest
@@ -240,6 +241,10 @@ class LanguageServerHandler:
                 await asyncio.wait_for(wait_for_end, timeout=60)
             except asyncio.TimeoutError:
                 process.kill()
+
+                for child in psutil.Process(process.pid).children(recursive=True):
+                    child.kill()
+
 
     async def shutdown(self) -> None:
         """
