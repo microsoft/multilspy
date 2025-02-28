@@ -240,10 +240,10 @@ class LanguageServerHandler:
             try:
                 await asyncio.wait_for(wait_for_end, timeout=60)
             except asyncio.TimeoutError:
-                process.kill()
-
                 for child in psutil.Process(process.pid).children(recursive=True):
                     child.kill()
+                
+                process.kill()
 
 
     async def shutdown(self) -> None:
