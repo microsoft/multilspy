@@ -1,0 +1,14 @@
+{
+    "_description": "This file contains the initialization parameters for the Dart Language Server.",
+    "processId": "$processId",
+    "rootPath": "$rootPath",
+    "rootUri": "$rootUri",
+    "capabilities": {},
+    "trace": "verbose",
+    "workspaceFolders": [
+        {
+            "uri": "$uri",
+            "name": "$name"
+        }
+    ]
+}
