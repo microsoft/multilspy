@@ -406,3 +406,5 @@ src/multilspy/language_servers/typescript_language_server/static/
 # Virtual Environment
 .venv/
 venv/
+
+fake_repo/
