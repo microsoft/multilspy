@@ -1,5 +1,5 @@
 {
-    "_description": "Used to download the runtime dependencies for running Dart Language Server",
+    "_description": "Used to download the runtime dependencies for running Dart Language Server, downloaded from https://dart.dev/get-dart/archive",
     "runtimeDependencies": [
         {
             "id": "DartLanguageServer",
