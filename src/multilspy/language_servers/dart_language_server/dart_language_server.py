@@ -3,10 +3,12 @@ import logging
 import os
 import pathlib
 import shutil
+import stat
 from typing import AsyncIterator
 from multilspy.language_server import LanguageServer
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 import json
+from multilspy.multilspy_utils import FileUtils, PlatformUtils
 
 
 class DartLanguageServer(LanguageServer):
@@ -19,7 +21,7 @@ class DartLanguageServer(LanguageServer):
         Creates a DartServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
 
-        executable_path = self.setup_runtime_dependencies()
+        executable_path = self.setup_runtime_dependencies(logger)
         super().__init__(
             config,
             logger,
@@ -28,9 +30,33 @@ class DartLanguageServer(LanguageServer):
             "dart",
         )
 
-    def setup_runtime_dependencies(self):
-        dart_executable_path = shutil.which("dart")
-        assert dart_executable_path, "Dart executable not found in PATH"
+    def setup_runtime_dependencies(self, logger: "MultilspyLogger") -> str:
+        platform_id = PlatformUtils.get_platform_id()
+
+        with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
+            d = json.load(f)
+            del d["_description"]
+
+        runtime_dependencies = d["runtimeDependencies"]
+        runtime_dependencies = [
+            dependency for dependency in runtime_dependencies if dependency["platformId"] == platform_id.value
+        ]
+
+        assert len(runtime_dependencies) == 1
+        dependency = runtime_dependencies[0]
+
+        dart_ls_dir = os.path.join(os.path.dirname(__file__), "static", "dart-language-server")
+        dart_executable_path = os.path.join(dart_ls_dir, dependency["binaryName"])
+
+        if not os.path.exists(dart_ls_dir):
+            os.makedirs(dart_ls_dir)
+            FileUtils.download_and_extract_archive(
+                logger, dependency["url"], dart_ls_dir, dependency["archiveType"]
+            )
+
+
+        assert os.path.exists(dart_executable_path)
+        os.chmod(dart_executable_path, stat.S_IEXEC)
 
         return f"{dart_executable_path} language-server --client-id multilspy.dart --client-version 1.2"
 
