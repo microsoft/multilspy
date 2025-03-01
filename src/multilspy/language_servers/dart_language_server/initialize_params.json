@@ -4,6 +4,14 @@
     "rootPath": "$rootPath",
     "rootUri": "$rootUri",
     "capabilities": {},
+    "initializationOptions": {
+        "onlyAnalyzeProjectsWithOpenFiles": false,
+        "suggestFromUnimportedLibraries": true,
+        "closingLabels": false,
+        "outline": false,
+        "flutterOutline": false,
+        "allowOpenUri": false
+    },
     "trace": "verbose",
     "workspaceFolders": [
         {
@@ -11,4 +19,5 @@
             "name": "$name"
         }
     ]
+    
 }
