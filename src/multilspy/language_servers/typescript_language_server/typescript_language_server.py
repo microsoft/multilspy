@@ -9,7 +9,6 @@ import logging
 import os
 import subprocess
 import pathlib
-import sys
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -22,7 +21,7 @@ from multilspy.multilspy_utils import PlatformUtils, PlatformId
 
 
 # Conditionally import pwd module (Unix-only)
-if sys.platform != 'win32':
+if not PlatformUtils.get_platform_id().value.startswith("win"):
     import pwd
 
 
@@ -81,7 +80,7 @@ class TypeScriptLanguageServer(LanguageServer):
             os.makedirs(tsserver_ls_dir, exist_ok=True)
             for dependency in runtime_dependencies:
                 # Windows doesn't support the 'user' parameter and doesn't have pwd module
-                if sys.platform == 'win32':
+                if PlatformUtils.get_platform_id().value.startswith("win"):
                     subprocess.run(
                         dependency["command"], 
                         shell=True, 
