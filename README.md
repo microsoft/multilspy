@@ -4,7 +4,7 @@
 ## Introduction
 This repository hosts `multilspy`, a library developed as part of research conducted for NeruIPS 2023 paper titled ["Monitor-Guided Decoding of Code LMs with Static Analysis of Repository Context"](https://neurips.cc/virtual/2023/poster/70362) (["Guiding Language Models of Code with Global Context using Monitors"](https://arxiv.org/abs/2306.10763) on Arxiv). The paper introduces Monitor-Guided Decoding (MGD) for code generation using Language Models, where a monitor uses static analysis to guide the decoding, ensuring that the generated code follows various correctness properties, like absence of hallucinated symbol names, valid order of method calls, etc. For further details about Monitor-Guided Decoding, please refer to the paper and GitHub repository [microsoft/monitors4codegen](https://github.com/microsoft/monitors4codegen).
 
-`multilspy` is a cross-platform library designed to simplify the process of creating language server clients to query and obtain results of various static analyses from a wide variety of language servers that communicate over the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/). It is easily extensible to support any [language that has a Language Server](https://microsoft.github.io/language-server-protocol/implementors/servers/) and currently supports Java, Rust, C#, Go, JavaScript and Python. We aim to continuously add support for more language servers and languages.
+`multilspy` is a cross-platform library designed to simplify the process of creating language server clients to query and obtain results of various static analyses from a wide variety of language servers that communicate over the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/). It is easily extensible to support any [language that has a Language Server](https://microsoft.github.io/language-server-protocol/implementors/servers/) and we aim to continuously add support for more language servers and languages.
 
 [Language servers]((https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/)) are tools that perform a variety of static analyses on code repositories and provide useful information such as type-directed code completion suggestions, symbol definition locations, symbol references, etc., over the [Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/). Since LSP is language-agnostic, `multilspy` can provide the results for static analyses of code in different languages over a common interface.
 
@@ -35,6 +35,21 @@ To install `multilspy` using pip, execute the following command:
 pip install multilspy
 ```
 
+## Supported Languages
+`multilspy` currently supports the following languages:
+| Code Language | Language Server |
+| --- | --- | 
+| java | Eclipse JDTLS |
+| python | jedi-language-server |
+| rust | Rust Analyzer |
+| csharp | OmniSharp / RazorSharp |
+| typescript | TypeScriptLanguageServer |
+| javascript | TypeScriptLanguageServer |
+| go | gopls |
+| dart | Dart |
+| ruby | Solargraph |
+
+
 ## Usage
 Example usage:
 ```python
@@ -42,7 +57,7 @@ from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_logger import MultilspyLogger
 ...
-config = MultilspyConfig.from_dict({"code_language": "java"}) # Also supports "python", "rust", "csharp", "typescript", "javascript", "go"
+config = MultilspyConfig.from_dict({"code_language": "java"}) # Also supports "python", "rust", "csharp", "typescript", "javascript", "go", "dart", "ruby"
 logger = MultilspyLogger()
 lsp = SyncLanguageServer.create(config, logger, "/abs/path/to/project/root/")
 with lsp.start_server():
