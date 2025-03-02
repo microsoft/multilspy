@@ -22,7 +22,7 @@ classifiers = [
     "Programming Language :: Java",
     "Programming Language :: Python",
     "Programming Language :: Rust",
-    "Programming Language :: JavaScript"
+    "Programming Language :: JavaScript",
     "Programming Language :: Go",
     "Programming Language :: Ruby",
     "Programming Language :: Dart",
