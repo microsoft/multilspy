@@ -12,7 +12,7 @@ pytest_plugins = ("pytest_asyncio",)
 
 
 @pytest.mark.asyncio
-async def test_multilspy_dart():
+async def test_multilspy_dart_open_nutri_tracker():
     """
     Test the working of multilspy with a Dart repository.
     """

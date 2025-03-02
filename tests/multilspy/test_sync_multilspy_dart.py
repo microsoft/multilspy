@@ -8,9 +8,9 @@ from tests.test_utils import create_test_context
 from pathlib import PurePath
 
 
-def test_sync_multilspy_dart() -> None:
+def test_sync_multilspy_dart_open_nutri_tracker() -> None:
     """
-    Test the working of multilspy with python repository - black
+    Test the working of multilspy with the Dart Language Server
     """
     code_language = Language.DART
     params = {
