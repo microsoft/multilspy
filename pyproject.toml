@@ -25,7 +25,6 @@ classifiers = [
     "Programming Language :: JavaScript",
     "Programming Language :: Go",
     "Programming Language :: Ruby",
-    "Programming Language :: Dart",
 ]
 
 dependencies = [
