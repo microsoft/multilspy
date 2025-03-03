@@ -1,0 +1,13 @@
+{
+    "_description": "Used to download the runtime dependencies for running Dart Language Server, downloaded from https://dart.dev/get-dart/archive",
+    "runtimeDependencies": [
+        {
+            "id": "DartLanguageServer",
+            "description": "Dart Language Server for Linux (x64)",
+            "url": "https://storage.googleapis.com/dart-archive/channels/stable/release/3.7.1/sdk/dartsdk-linux-x64-release.zip",
+            "platformId": "linux-x64",
+            "archiveType": "zip",
+            "binaryName": "dart-sdk/bin/dart"
+        }
+    ]
+}
