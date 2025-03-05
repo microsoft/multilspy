@@ -467,7 +467,7 @@ class LanguageServer:
             )
 
         ret: List[multilspy_types.Location] = []
-        assert isinstance(response, list)
+        assert isinstance(response, list), f"Unexpected response from Language Server: {response}"
         for item in response:
             assert isinstance(item, dict)
             assert LSPConstants.URI in item
@@ -597,7 +597,7 @@ class LanguageServer:
         
         ret: List[multilspy_types.UnifiedSymbolInformation] = []
         l_tree = None
-        assert isinstance(response, list)
+        assert isinstance(response, list), f"Unexpected response from Language Server: {response}"
         for item in response:
             assert isinstance(item, dict)
             assert LSPConstants.NAME in item
