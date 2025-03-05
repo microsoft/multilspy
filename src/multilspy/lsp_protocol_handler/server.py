@@ -211,6 +211,7 @@ class LanguageServerHandler:
             stderr=asyncio.subprocess.PIPE,
             env=child_proc_env,
             cwd=self.process_launch_info.cwd,
+            start_new_session=True,
         )
 
         self.loop = asyncio.get_event_loop()
