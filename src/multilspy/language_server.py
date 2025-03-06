@@ -112,6 +112,10 @@ class LanguageServer:
             from multilspy.language_servers.dart_language_server.dart_language_server import DartLanguageServer
 
             return DartLanguageServer(config, logger, repository_root_path)
+        elif config.code_language == Language.PERL:
+            from multilspy.language_servers.perl_language_server.perl_language_server import PerlLanguageServer
+
+            return PerlLanguageServer(config, logger, repository_root_path)
         else:
             logger.log(f"Language {config.code_language} is not supported", logging.ERROR)
             raise MultilspyException(f"Language {config.code_language} is not supported")
