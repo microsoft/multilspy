@@ -172,9 +172,18 @@ class LanguageServerHandler:
             the asynchronous tasks created by the handler.
         task_counter: An integer that represents the next available task id for the handler.
         loop: An asyncio.AbstractEventLoop object that represents the event loop used by the handler.
+        start_independent_lsp_process: An optional boolean flag that indicates whether to start the
+        language server process in an independent process group. Default is `True`. Setting it to
+        `False` means that the language server process will be in the same process group as the
+        the current process, and any SIGINT and SIGTERM signals will be sent to both processes.
     """
 
-    def __init__(self, process_launch_info: ProcessLaunchInfo, logger=None) -> None:
+    def __init__(
+        self,
+        process_launch_info: ProcessLaunchInfo,
+        logger=None,
+        start_independent_lsp_process=True,
+    ) -> None:
         """
         Params:
             cmd: A string that represents the command to launch the language server process.
@@ -196,6 +205,7 @@ class LanguageServerHandler:
         self.tasks = {}
         self.task_counter = 0
         self.loop = None
+        self.start_independent_lsp_process = start_independent_lsp_process
 
     async def start(self) -> None:
         """
@@ -211,7 +221,7 @@ class LanguageServerHandler:
             stderr=asyncio.subprocess.PIPE,
             env=child_proc_env,
             cwd=self.process_launch_info.cwd,
-            start_new_session=True,
+            start_new_session=self.start_independent_lsp_process,
         )
 
         self.loop = asyncio.get_event_loop()
