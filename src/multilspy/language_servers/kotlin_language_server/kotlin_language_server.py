@@ -2,6 +2,7 @@
 Provides Kotlin specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Kotlin.
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -58,18 +59,27 @@ class KotlinLanguageServer(LanguageServer):
 
         # Setup paths and download if necessary
         kotlin_ls_dir = os.path.join(os.path.dirname(__file__), "static")
-        kotlin_executable_path = os.path.join(kotlin_ls_dir, "server", "bin", binary_name)
-        
+        kotlin_bin_path = os.path.join(kotlin_ls_dir, "server", "bin")
+        kotlin_executable_path = os.path.join(kotlin_bin_path, binary_name)
+
         if not os.path.exists(kotlin_ls_dir):
             os.makedirs(kotlin_ls_dir)
             FileUtils.download_and_extract_archive(
                 logger, dependency["url"], kotlin_ls_dir, dependency["archiveType"]
             )
-        
-        assert os.path.exists(kotlin_executable_path)
-        os.chmod(kotlin_executable_path, stat.S_IEXEC)
 
-        return kotlin_executable_path
+        assert os.path.exists(kotlin_executable_path)
+        
+        # Set proper executable permissions (read+execute for everyone)
+        os.chmod(kotlin_executable_path, 0o755)
+        
+        # Create command that will properly execute the script
+        if platform_id.value.startswith("win-"):
+            cmd = f'"{kotlin_executable_path}"'
+        else:
+            cmd = f'/bin/sh "{kotlin_executable_path}"'
+
+        return cmd
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """
