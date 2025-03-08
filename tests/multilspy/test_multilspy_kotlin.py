@@ -12,7 +12,7 @@ from tests.test_utils import create_test_context
 pytest_plugins = ("pytest_asyncio",)
 
 @pytest.mark.asyncio
-async def test_document_symbols() -> None:
+async def test_multilspy_kotlin_document_symbols() -> None:
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",
@@ -49,7 +49,7 @@ async def test_document_symbols() -> None:
                 assert len(companion_symbols) == 2, "Should find exactly 2 companion object symbols"
 
 @pytest.mark.asyncio
-async def test_definition() -> None:
+async def test_multilspy_kotlin_definition() -> None:
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",
@@ -74,7 +74,7 @@ async def test_definition() -> None:
                 assert definition["range"]["end"]["character"] == 24
 
 @pytest.mark.asyncio
-async def test_references() -> None:
+async def test_multilspy_kotlin_references() -> None:
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",
@@ -106,7 +106,7 @@ async def test_references() -> None:
                 assert ref_to["range"]["start"]["character"] == 20
 
 @pytest.mark.asyncio
-async def test_hover() -> None:
+async def test_multilspy_kotlin_hover() -> None:
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",
@@ -131,7 +131,7 @@ async def test_hover() -> None:
                 assert "val stringLiteral: String" in hover_result["contents"]["value"]
 
 @pytest.mark.asyncio
-async def test_completions() -> None:
+async def test_multilspy_kotlin_completions() -> None:
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",

@@ -8,7 +8,7 @@ from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import Language
 from tests.test_utils import create_test_context
 
-def test_sync_document_symbols() -> None:
+def test_multilspy_kotlin_sync_document_symbols() -> None:
     """
     Test document symbols functionality using the sync API
     """
@@ -47,7 +47,7 @@ def test_sync_document_symbols() -> None:
                 companion_symbols = [s for s in symbols if s["name"] == "DocumentSymbols" and s["kind"] == 9]
                 assert len(companion_symbols) == 2, "Should find exactly 2 companion object symbols"
 
-def test_sync_definition() -> None:
+def test_multilspy_kotlin_sync_definition() -> None:
     """
     Test definition lookup functionality using the sync API
     """
@@ -74,7 +74,7 @@ def test_sync_definition() -> None:
                 assert definition["range"]["start"]["character"] == 8
                 assert definition["range"]["end"]["character"] == 24
 
-def test_sync_references() -> None:
+def test_multilspy_kotlin_sync_references() -> None:
     """
     Test references lookup functionality using the sync API
     """
@@ -108,7 +108,7 @@ def test_sync_references() -> None:
                 assert ref_to["range"]["start"]["line"] == 8
                 assert ref_to["range"]["start"]["character"] == 20
 
-def test_sync_hover() -> None:
+def test_multilspy_kotlin_sync_hover() -> None:
     """
     Test hover information functionality using the sync API
     """
@@ -135,7 +135,7 @@ def test_sync_hover() -> None:
                 assert "```kotlin" in hover_result["contents"]["value"]
                 assert "val stringLiteral: String" in hover_result["contents"]["value"]
 
-def test_sync_completions() -> None:
+def test_multilspy_kotlin_sync_completions() -> None:
     """
     Test code completion functionality using the sync API
     """
