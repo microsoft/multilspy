@@ -2,8 +2,8 @@
     "_description": "The parameters sent by the client when initializing the language server with the \"initialize\" request. More details at https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initialize",
     "processId": "os.getpid()",
     "clientInfo": {
-        "name": "Visual Studio Code - Insiders",
-        "version": "1.77.0-insider"
+        "name": "Multilspy Kotlin Client",
+        "version": "1.0.0"
     },
     "locale": "en",
     "rootPath": "repository_absolute_path",
@@ -469,380 +469,52 @@
         }
     },
     "initializationOptions": {
-        "bundles": [
-            "intellicode-core.jar"
-        ],
         "workspaceFolders": "[pathlib.Path(repository_absolute_path).as_uri()]",
-        "settings": {
-            "java": {
-                "home": null,
-                "jdt": {
-                    "ls": {
-                        "java": {
-                            "home": null
-                        },
-                        "vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx1G -Xms100m -Xlog:disable",
-                        "lombokSupport": {
-                            "enabled": true
-                        },
-                        "protobufSupport": {
-                            "enabled": true
-                        },
-                        "androidSupport": {
-                            "enabled": true
-                        }
-                    }
-                },
-                "errors": {
-                    "incompleteClasspath": {
-                        "severity": "error"
-                    }
-                },
-                "configuration": {
-                    "checkProjectSettingsExclusions": false,
-                    "updateBuildConfiguration": "interactive",
-                    "maven": {
-                        "userSettings": null,
-                        "globalSettings": null,
-                        "notCoveredPluginExecutionSeverity": "warning",
-                        "defaultMojoExecutionAction": "ignore"
-                    },
-                    "workspaceCacheLimit": 90,
-                    "runtimes": [
-                        {
-                            "name": "JavaSE-17",
-                            "path": "static/vscode-java/extension/jre/17.0.8.1-linux-x86_64",
-                            "default": true
-                        }
-                    ]
-                },
-                "trace": {
-                    "server": "verbose"
-                },
-                "import": {
-                    "maven": {
-                        "enabled": true,
-                        "offline": {
-                            "enabled": false
-                        },
-                        "disableTestClasspathFlag": false
-                    },
-                    "gradle": {
-                        "enabled": true,
-                        "wrapper": {
-                            "enabled": true
-                        },
-                        "version": null,
-                        "home": "abs(static/gradle-7.3.3)",
-                        "java": {
-                            "home": "abs(static/launch_jres/17.0.6-linux-x86_64)"
-                        },
-                        "offline": {
-                            "enabled": false
-                        },
-                        "arguments": null,
-                        "jvmArguments": null,
-                        "user": {
-                            "home": null
-                        },
-                        "annotationProcessing": {
-                            "enabled": true
-                        }
-                    },
-                    "exclusions": [
-                        "**/node_modules/**",
-                        "**/.metadata/**",
-                        "**/archetype-resources/**",
-                        "**/META-INF/maven/**"
-                    ],
-                    "generatesMetadataFilesAtProjectRoot": false
-                },
-                "maven": {
-                    "downloadSources": true,
-                    "updateSnapshots": true
-                },
-                "eclipse": {
-                    "downloadSources": true
-                },
-                "referencesCodeLens": {
-                    "enabled": true
-                },
-                "signatureHelp": {
-                    "enabled": true,
-                    "description": {
-                        "enabled": true
-                    }
-                },
-                "implementationsCodeLens": {
-                    "enabled": true
-                },
-                "format": {
-                    "enabled": true,
-                    "settings": {
-                        "url": null,
-                        "profile": null
-                    },
-                    "comments": {
-                        "enabled": true
-                    },
-                    "onType": {
-                        "enabled": true
-                    },
-                    "insertSpaces": true,
-                    "tabSize": 4
-                },
-                "saveActions": {
-                    "organizeImports": false
-                },
-                "project": {
-                    "referencedLibraries": [
-                        "lib/**/*.jar"
-                    ],
-                    "importOnFirstTimeStartup": "automatic",
-                    "importHint": true,
-                    "resourceFilters": [
-                        "node_modules",
-                        "\\.git"
-                    ],
-                    "encoding": "ignore",
-                    "exportJar": {
-                        "targetPath": "${workspaceFolder}/${workspaceFolderBasename}.jar"
-                    }
-                },
-                "contentProvider": {
-                    "preferred": null
-                },
-                "autobuild": {
-                    "enabled": true
-                },
-                "maxConcurrentBuilds": 1,
-                "recommendations": {
-                    "dependency": {
-                        "analytics": {
-                            "show": true
-                        }
-                    }
-                },
-                "completion": {
-                    "maxResults": 0,
-                    "enabled": true,
-                    "guessMethodArguments": true,
-                    "favoriteStaticMembers": [
-                        "org.junit.Assert.*",
-                        "org.junit.Assume.*",
-                        "org.junit.jupiter.api.Assertions.*",
-                        "org.junit.jupiter.api.Assumptions.*",
-                        "org.junit.jupiter.api.DynamicContainer.*",
-                        "org.junit.jupiter.api.DynamicTest.*",
-                        "org.mockito.Mockito.*",
-                        "org.mockito.ArgumentMatchers.*",
-                        "org.mockito.Answers.*"
-                    ],
-                    "filteredTypes": [
-                        "java.awt.*",
-                        "com.sun.*",
-                        "sun.*",
-                        "jdk.*",
-                        "org.graalvm.*",
-                        "io.micrometer.shaded.*"
-                    ],
-                    "importOrder": [
-                        "#",
-                        "java",
-                        "javax",
-                        "org",
-                        "com",
-                        ""
-                    ],
-                    "postfix": {
-                        "enabled": false
-                    },
-                    "matchCase": "off"
-                },
-                "foldingRange": {
-                    "enabled": true
-                },
-                "progressReports": {
-                    "enabled": false
-                },
-                "codeGeneration": {
-                    "hashCodeEquals": {
-                        "useJava7Objects": false,
-                        "useInstanceof": false
-                    },
-                    "useBlocks": false,
-                    "generateComments": false,
-                    "toString": {
-                        "template": "${object.className} [${member.name()}=${member.value}, ${otherMembers}]",
-                        "codeStyle": "STRING_CONCATENATION",
-                        "skipNullValues": false,
-                        "listArrayContents": true,
-                        "limitElements": 0
-                    },
-                    "insertionLocation": "afterCursor"
-                },
-                "selectionRange": {
-                    "enabled": true
-                },
-                "showBuildStatusOnStart": {
-                    "enabled": "notification"
-                },
-                "server": {
-                    "launchMode": "Standard"
-                },
-                "sources": {
-                    "organizeImports": {
-                        "starThreshold": 99,
-                        "staticStarThreshold": 99
-                    }
-                },
-                "imports": {
-                    "gradle": {
-                        "wrapper": {
-                            "checksums": []
-                        }
-                    }
-                },
-                "templates": {
-                    "fileHeader": [],
-                    "typeComment": []
-                },
-                "references": {
-                    "includeAccessors": true,
-                    "includeDecompiledSources": true
-                },
-                "typeHierarchy": {
-                    "lazyLoad": false
-                },
-                "settings": {
-                    "url": null
-                },
-                "symbols": {
-                    "includeSourceMethodDeclarations": false
-                },
-                "quickfix": {
-                    "showAt": "line"
-                },
-                "inlayHints": {
-                    "parameterNames": {
-                        "enabled": "literals",
-                        "exclusions": []
-                    }
-                },
-                "codeAction": {
-                    "sortMembers": {
-                        "avoidVolatileChanges": true
-                    }
-                },
-                "compile": {
-                    "nullAnalysis": {
-                        "nonnull": [
-                            "javax.annotation.Nonnull",
-                            "org.eclipse.jdt.annotation.NonNull",
-                            "org.springframework.lang.NonNull"
-                        ],
-                        "nullable": [
-                            "javax.annotation.Nullable",
-                            "org.eclipse.jdt.annotation.Nullable",
-                            "org.springframework.lang.Nullable"
-                        ],
-                        "mode": "automatic"
-                    }
-                },
-                "cleanup": {
-                    "actionsOnSave": []
-                },
-                "sharedIndexes": {
-                    "enabled": "auto",
-                    "location": ""
-                },
-                "refactoring": {
-                    "extract": {
-                        "interface": {
-                            "replace": true
-                        }
-                    }
-                },
-                "debug": {
-                    "logLevel": "verbose",
-                    "settings": {
-                        "showHex": false,
-                        "showStaticVariables": false,
-                        "showQualifiedNames": false,
-                        "showLogicalStructure": true,
-                        "showToString": true,
-                        "maxStringLength": 0,
-                        "numericPrecision": 0,
-                        "hotCodeReplace": "manual",
-                        "enableRunDebugCodeLens": true,
-                        "forceBuildBeforeLaunch": true,
-                        "onBuildFailureProceed": false,
-                        "console": "integratedTerminal",
-                        "exceptionBreakpoint": {
-                            "skipClasses": []
-                        },
-                        "stepping": {
-                            "skipClasses": [],
-                            "skipSynthetics": false,
-                            "skipStaticInitializers": false,
-                            "skipConstructors": false
-                        },
-                        "jdwp": {
-                            "limitOfVariablesPerJdwpRequest": 100,
-                            "requestTimeout": 3000,
-                            "async": "auto"
-                        },
-                        "vmArgs": ""
-                    }
-                },
-                "silentNotification": false,
-                "dependency": {
-                    "showMembers": false,
-                    "syncWithFolderExplorer": true,
-                    "autoRefresh": true,
-                    "refreshDelay": 2000,
-                    "packagePresentation": "flat"
-                },
-                "help": {
-                    "firstView": "auto",
-                    "showReleaseNotes": true,
-                    "collectErrorLog": false
-                },
-                "test": {
-                    "defaultConfig": "",
-                    "config": {}
-                }
+        "storagePath": null,
+        "codegen": {
+            "enabled": false
+        },
+        "compiler": {
+            "jvm": {
+                "target": "default"
             }
         },
-        "extendedClientCapabilities": {
-            "progressReportProvider": false,
-            "classFileContentsSupport": true,
-            "overrideMethodsPromptSupport": true,
-            "hashCodeEqualsPromptSupport": true,
-            "advancedOrganizeImportsSupport": true,
-            "generateToStringPromptSupport": true,
-            "advancedGenerateAccessorsSupport": true,
-            "generateConstructorsPromptSupport": true,
-            "generateDelegateMethodsPromptSupport": true,
-            "advancedExtractRefactoringSupport": true,
-            "inferSelectionSupport": [
-                "extractMethod",
-                "extractVariable",
-                "extractField"
-            ],
-            "moveRefactoringSupport": true,
-            "clientHoverProvider": true,
-            "clientDocumentSymbolProvider": true,
-            "gradleChecksumWrapperPromptSupport": true,
-            "resolveAdditionalTextEditsSupport": true,
-            "advancedIntroduceParameterRefactoringSupport": true,
-            "actionableRuntimeNotificationSupport": true,
-            "shouldLanguageServerExitOnShutdown": true,
-            "onCompletionItemSelectedCommand": "editor.action.triggerParameterHints",
-            "extractInterfaceSupport": true,
-            "advancedUpgradeGradleSupport": true
+        "completion": {
+            "snippets": {
+                "enabled": true
+            }
         },
-        "triggerFiles": []
+        "diagnostics": {
+            "enabled": true,
+            "level": 4,
+            "debounceTime": 250
+        },
+        "scripts": {
+            "enabled": true,
+            "buildScriptsEnabled": true
+        },
+        "indexing": {
+            "enabled": true
+        },
+        "externalSources": {
+            "useKlsScheme": false,
+            "autoConvertToKotlin": false
+        },
+        "inlayHints": {
+            "typeHints": false,
+            "parameterHints": false,
+            "chainedHints": false
+        },
+        "formatting": {
+            "formatter": "ktfmt",
+            "ktfmt": {
+                "style": "google",
+                "indent": 4,
+                "maxWidth": 100,
+                "continuationIndent": 8,
+                "removeUnusedImports": true
+            }
+        }
     },
     "trace": "verbose",
     "workspaceFolders": "[\n            {\n                \"uri\": pathlib.Path(repository_absolute_path).as_uri(),\n                \"name\": os.path.basename(repository_absolute_path),\n            }\n        ]"

@@ -1,13 +1,9 @@
 {
-    "_description": "Used to download the runtime dependencies for running RustAnalyzer. Obtained from https://github.com/rust-lang/rust-analyzer/releases",
-    "runtimeDependencies": [
-        {
-            "id": "KotlinLsp",
-            "description": "KotlinLsp",
-            "url": "https://github.com/fwcd/kotlin-language-server/releases/download/1.3.13/server.zip",
-            "platformId": "win-x64",
-            "archiveType": "zip",
-            "binaryName": "kotlin-language-server.bat"
-        }
-    ]
+    "_description": "Used to download the runtime dependencies for Kotlin Language Server from https://github.com/fwcd/kotlin-language-server",
+    "runtimeDependency": {
+        "id": "KotlinLsp",
+        "description": "Kotlin Language Server",
+        "url": "https://github.com/fwcd/kotlin-language-server/releases/download/1.3.13/server.zip",
+        "archiveType": "zip"
+    }
 }

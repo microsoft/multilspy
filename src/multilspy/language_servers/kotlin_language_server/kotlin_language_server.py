@@ -27,7 +27,7 @@ class KotlinLanguageServer(LanguageServer):
 
     def __init__(self, config: MultilspyConfig, logger: MultilspyLogger, repository_root_path: str):
         """
-        Creates a JediServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
+        Creates a Kotlin Language Server instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
         kotlin_executable_path = self.setup_runtime_dependencies(logger, config)
         super().__init__(
@@ -38,6 +38,7 @@ class KotlinLanguageServer(LanguageServer):
             "kotlin",
         )
         self.server_ready = asyncio.Event()
+        self.initialize_searcher_command_available = asyncio.Event()
 
     def setup_runtime_dependencies(self, logger: MultilspyLogger, config: MultilspyConfig) -> str:
         """
@@ -45,29 +46,32 @@ class KotlinLanguageServer(LanguageServer):
         """
         platform_id = PlatformUtils.get_platform_id()
 
-        with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
-            d = json.load(f)
-            del d["_description"]
-
+        # Verify platform support
         assert platform_id.value in [
             "linux-x64",
             "win-x64",
         ], "Only linux-x64 and win-x64 platform is supported for in multilspy at the moment"
 
-        runtime_dependencies = d["runtimeDependencies"]
-        runtime_dependencies = [
-            dependency for dependency in runtime_dependencies if dependency["platformId"] == platform_id.value
-        ]
-        assert len(runtime_dependencies) == 1
-        dependency = runtime_dependencies[0]
+        # Determine the binary name based on platform
+        binary_name = "kotlin-language-server.bat" if platform_id.value == "win-x64" else "kotlin-language-server"
 
+        # Load dependency information
+        with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
+            d = json.load(f)
+            del d["_description"]
+        
+        dependency = d["runtimeDependency"]
+
+        # Setup paths and download if necessary
         kotlin_ls_dir = os.path.join(os.path.dirname(__file__), "static")
-        kotlin_executable_path = os.path.join(kotlin_ls_dir, "server", "bin", dependency["binaryName"])
+        kotlin_executable_path = os.path.join(kotlin_ls_dir, "server", "bin", binary_name)
+        
         if not os.path.exists(kotlin_ls_dir):
             os.makedirs(kotlin_ls_dir)
             FileUtils.download_and_extract_archive(
                 logger, dependency["url"], kotlin_ls_dir, dependency["archiveType"]
             )
+        
         assert os.path.exists(kotlin_executable_path)
         os.chmod(kotlin_executable_path, stat.S_IEXEC)
 
@@ -140,6 +144,12 @@ class KotlinLanguageServer(LanguageServer):
 
         async def window_log_message(msg):
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
+            
+        async def check_experimental_status(params):
+            # Kotlin Language Server sends server status notifications
+            if params.get("type") == "ready":
+                self.server_ready.set()
+            return
 
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("language/status", do_nothing)
@@ -148,7 +158,7 @@ class KotlinLanguageServer(LanguageServer):
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
-        # self.server.on_notification("experimental/serverStatus", check_experimental_status)
+        self.server.on_notification("experimental/serverStatus", check_experimental_status)
 
         async with super().start_server():
             self.logger.log("Starting Kotlin server process", logging.INFO)
@@ -161,11 +171,20 @@ class KotlinLanguageServer(LanguageServer):
             )
             init_response = await self.server.send.initialize(initialize_params)
 
+            capabilities = init_response["capabilities"]
+            assert "textDocumentSync" in capabilities, "Server must support textDocumentSync"
+            assert "hoverProvider" in capabilities, "Server must support hover"
+            assert "completionProvider" in capabilities, "Server must support code completion"
+            assert "signatureHelpProvider" in capabilities, "Server must support signature help"
+            assert "definitionProvider" in capabilities, "Server must support go to definition"
+            assert "referencesProvider" in capabilities, "Server must support find references"
+            assert "documentSymbolProvider" in capabilities, "Server must support document symbols"
+            assert "workspaceSymbolProvider" in capabilities, "Server must support workspace symbols"
+            assert "semanticTokensProvider" in capabilities, "Server must support semantic tokens"
             
             self.server.notify.initialized({})
             self.completions_available.set()
 
-            # Kotlin server is typically ready immediately after initialization
             self.server_ready.set()
             await self.server_ready.wait()
 
