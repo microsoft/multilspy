@@ -47,3 +47,45 @@ def test_sync_multilspy_javascript_exceljs() -> None:
                 {'range': {'start': {'line': 180, 'character': 16}, 'end': {'line': 180, 'character': 21}}, 'relativePath': path},
                 {'range': {'start': {'line': 185, 'character': 15}, 'end': {'line': 185, 'character': 20}}, 'relativePath': path}
             ]
+
+def test_sync_multilspy_javascript_exceljs_cross_file() -> None:
+    """
+    Test the working of multilspy with javascript repository - exceljs
+    """
+    code_language = Language.JAVASCRIPT
+    params = {
+        "code_language": code_language,
+        "repo_url": "https://github.com/exceljs/exceljs/",
+        "repo_commit": "ac96f9a61e9799c7776bd940f05c4a51d7200209"
+    }
+    with create_test_context(params) as context:
+        lsp = SyncLanguageServer.create(context.config, context.logger, context.source_directory)
+
+        # All the communication with the language server must be performed inside the context manager
+        # The server process is started when the context manager is entered and is terminated when the context manager is exited.
+        with lsp.start_server():
+            path = str(PurePath("lib/csv/csv.js"))
+            result = lsp.request_definition(path, 25, 8)
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+            item = result[0]
+            assert item["relativePath"] == "lib/utils/stream-buf.js"
+            assert item["range"] == {
+                "start": {"line": 145, "character": 6},
+                "end": {"line": 145, "character": 15},
+            }
+
+            result = lsp.request_references(path, 2, 9)
+            assert isinstance(result, list)
+            assert len(result) == 3
+
+            for item in result:
+                del item["uri"]
+                del item["absolutePath"]
+
+            assert result == [
+                {'range': {'start': {'line': 190, 'character': 17}, 'end': {'line': 190, 'character': 20}}, 'relativePath': "lib/csv/csv.js"},
+                {'range': {'start': {'line': 5, 'character': 6}, 'end': {'line': 5, 'character': 9}}, 'relativePath': "lib/doc/workbook.js"},
+                {'range': {'start': {'line': 38, 'character': 36}, 'end': {'line': 38, 'character': 39}}, 'relativePath': "lib/doc/workbook.js"},
+            ]
