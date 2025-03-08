@@ -47,13 +47,10 @@ class KotlinLanguageServer(LanguageServer):
         platform_id = PlatformUtils.get_platform_id()
 
         # Verify platform support
-        assert platform_id.value in [
-            "linux-x64",
-            "win-x64",
-        ], "Only linux-x64 and win-x64 platform is supported for in multilspy at the moment"
+        assert platform_id.value.startswith("win-") or platform_id.value.startswith("linux-") or platform_id.value.startswith("osx-"), "Only Windows, Linux and macOS platforms are supported for Kotlin in multilspy at the moment"
 
         # Determine the binary name based on platform
-        binary_name = "kotlin-language-server.bat" if platform_id.value == "win-x64" else "kotlin-language-server"
+        binary_name = "kotlin-language-server.bat" if platform_id.value.startswith("win-") else "kotlin-language-server"
 
         # Load dependency information
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
