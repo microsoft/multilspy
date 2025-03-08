@@ -37,7 +37,6 @@ class KotlinLanguageServer(LanguageServer):
             ProcessLaunchInfo(cmd=kotlin_executable_path, cwd=repository_root_path),
             "kotlin",
         )
-        self.server_ready = asyncio.Event()
         self.initialize_searcher_command_available = asyncio.Event()
 
     def setup_runtime_dependencies(self, logger: MultilspyLogger, config: MultilspyConfig) -> str:
@@ -141,12 +140,6 @@ class KotlinLanguageServer(LanguageServer):
 
         async def window_log_message(msg):
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
-            
-        async def check_experimental_status(params):
-            # Kotlin Language Server sends server status notifications
-            if params.get("type") == "ready":
-                self.server_ready.set()
-            return
 
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("language/status", do_nothing)
@@ -155,7 +148,6 @@ class KotlinLanguageServer(LanguageServer):
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
-        self.server.on_notification("experimental/serverStatus", check_experimental_status)
 
         async with super().start_server():
             self.logger.log("Starting Kotlin server process", logging.INFO)
@@ -181,9 +173,6 @@ class KotlinLanguageServer(LanguageServer):
             
             self.server.notify.initialized({})
             self.completions_available.set()
-
-            self.server_ready.set()
-            await self.server_ready.wait()
 
             yield self
 
