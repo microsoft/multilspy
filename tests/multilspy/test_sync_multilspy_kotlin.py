@@ -1,30 +1,29 @@
 """
 This file contains tests for running the Kotlin Language Server: kotlin-language-server
+using the synchronous API
 """
 
-import pytest
 from pathlib import PurePath
-
-from multilspy import LanguageServer
+from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import Language
 from tests.test_utils import create_test_context
 
-pytest_plugins = ("pytest_asyncio",)
-
-@pytest.mark.asyncio
-async def test_document_symbols() -> None:
+def test_sync_document_symbols() -> None:
+    """
+    Test document symbols functionality using the sync API
+    """
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",
         "repo_commit": "8418fb560a4013c3e02c942797e9c877affa0a51"
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = SyncLanguageServer.create(context.config, context.logger, context.source_directory)
         test_file = str(PurePath("server/src/test/resources/symbols/DocumentSymbols.kt"))
 
-        async with lsp.start_server():
+        with lsp.start_server():
             with lsp.open_file(test_file):
-                result = await lsp.request_document_symbols(test_file)
+                result = lsp.request_document_symbols(test_file)
                 
                 symbols = result[0]
                 assert len(symbols) == 5, "Should find exactly 5 document symbols"
@@ -48,20 +47,22 @@ async def test_document_symbols() -> None:
                 companion_symbols = [s for s in symbols if s["name"] == "DocumentSymbols" and s["kind"] == 9]
                 assert len(companion_symbols) == 2, "Should find exactly 2 companion object symbols"
 
-@pytest.mark.asyncio
-async def test_definition() -> None:
+def test_sync_definition() -> None:
+    """
+    Test definition lookup functionality using the sync API
+    """
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",
         "repo_commit": "8418fb560a4013c3e02c942797e9c877affa0a51"
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = SyncLanguageServer.create(context.config, context.logger, context.source_directory)
         test_file = str(PurePath("server/src/test/resources/definition/GoFrom.kt"))
         
-        async with lsp.start_server():
+        with lsp.start_server():
             with lsp.open_file(test_file):
-                definition_result = await lsp.request_definition(test_file, 2, 24)
+                definition_result = lsp.request_definition(test_file, 2, 24)
                 
                 assert definition_result is not None, "Definition result should not be None"
                 assert len(definition_result) == 1, "Should find exactly one definition"
@@ -73,20 +74,22 @@ async def test_definition() -> None:
                 assert definition["range"]["start"]["character"] == 8
                 assert definition["range"]["end"]["character"] == 24
 
-@pytest.mark.asyncio
-async def test_references() -> None:
+def test_sync_references() -> None:
+    """
+    Test references lookup functionality using the sync API
+    """
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",
         "repo_commit": "8418fb560a4013c3e02c942797e9c877affa0a51"
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = SyncLanguageServer.create(context.config, context.logger, context.source_directory)
         test_file = str(PurePath("server/src/test/resources/references/ReferenceTo.kt"))
         
-        async with lsp.start_server():
+        with lsp.start_server():
             with lsp.open_file(test_file):
-                references = await lsp.request_references(test_file, 1, 8)
+                references = lsp.request_references(test_file, 1, 8)
                 
                 assert references is not None, "References should not be None"
                 assert len(references) == 2, "Should find exactly two references to foo()"
@@ -105,20 +108,22 @@ async def test_references() -> None:
                 assert ref_to["range"]["start"]["line"] == 8
                 assert ref_to["range"]["start"]["character"] == 20
 
-@pytest.mark.asyncio
-async def test_hover() -> None:
+def test_sync_hover() -> None:
+    """
+    Test hover information functionality using the sync API
+    """
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",
         "repo_commit": "8418fb560a4013c3e02c942797e9c877affa0a51"
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = SyncLanguageServer.create(context.config, context.logger, context.source_directory)
         test_file = str(PurePath("server/src/test/resources/hover/Literals.kt"))
 
-        async with lsp.start_server():
+        with lsp.start_server():
             with lsp.open_file(test_file):
-                hover_result = await lsp.request_hover(test_file, 2, 19)
+                hover_result = lsp.request_hover(test_file, 2, 19)
 
                 assert hover_result is not None, "Hover result should not be None"
                 assert "contents" in hover_result, "Hover result should contain contents"
@@ -130,22 +135,24 @@ async def test_hover() -> None:
                 assert "```kotlin" in hover_result["contents"]["value"]
                 assert "val stringLiteral: String" in hover_result["contents"]["value"]
 
-@pytest.mark.asyncio
-async def test_completions() -> None:
+def test_sync_completions() -> None:
+    """
+    Test code completion functionality using the sync API
+    """
     params = {
         "code_language": Language.KOTLIN,
         "repo_url": "https://github.com/fwcd/kotlin-language-server/",
         "repo_commit": "8418fb560a4013c3e02c942797e9c877affa0a51"
     }
     with create_test_context(params) as context:
-        lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
+        lsp = SyncLanguageServer.create(context.config, context.logger, context.source_directory)
         # Use a file specifically designed for testing completions
         test_file = str(PurePath("server/src/test/resources/completions/InstanceMember.kt"))
         
-        async with lsp.start_server():
+        with lsp.start_server():
             with lsp.open_file(test_file):
                 # Position after "instance." where completions should be available
-                completions = await lsp.request_completions(test_file, 2, 13)
+                completions = lsp.request_completions(test_file, 2, 13)
                 
                 assert completions is not None, "Completions result should not be None"
                 assert len(completions) > 0, "Should find at least one completion item"
@@ -163,4 +170,3 @@ async def test_completions() -> None:
                 found_expected = any(expected in completion_texts for expected in expected_completions)
                 
                 assert found_expected, f"Should find expected completions from {expected_completions}, but found: {completion_texts[:5]}"
-
