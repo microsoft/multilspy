@@ -234,8 +234,17 @@ class LanguageServerHandler:
         """
         Sends the terminate signal to the language server process and waits for it to exit, with a timeout, killing it if necessary
         """
+        pending_tasks = []
         for task in self.tasks.values():
-            task.cancel()
+            if not task.done():
+                task.cancel()
+                pending_tasks.append(task)
+
+        if pending_tasks:
+            try:
+                await asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=5.0)
+            except asyncio.TimeoutError:
+                pass
 
         self.tasks = {}
         
