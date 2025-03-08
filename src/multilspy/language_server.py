@@ -165,7 +165,11 @@ class LanguageServer:
 
         # cmd is obtained from the child classes, which provide the language specific command to start the language server
         # LanguageServerHandler provides the functionality to start the language server and communicate with it
-        self.server: LanguageServerHandler = LanguageServerHandler(process_launch_info, logger=logging_fn)
+        self.server: LanguageServerHandler = LanguageServerHandler(
+            process_launch_info,
+            logger=logging_fn,
+            start_independent_lsp_process=config.start_independent_lsp_process,
+        )
 
         self.language_id = language_id
         self.open_file_buffers: Dict[str, LSPFileBuffer] = {}
