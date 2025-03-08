@@ -234,27 +234,104 @@ class LanguageServerHandler:
         """
         Sends the terminate signal to the language server process and waits for it to exit, with a timeout, killing it if necessary
         """
+        # First cancel all tasks
+        pending_tasks = []
         for task in self.tasks.values():
-            task.cancel()
+            if not task.done():
+                task.cancel()
+                pending_tasks.append(task)
+
+        if pending_tasks:
+            try:
+                await asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=5.0)
+            except asyncio.TimeoutError:
+                pass
+            except Exception:
+                pass
 
         self.tasks = {}
-
+        
         process = self.process
         self.process = None
-
-        if process:
-            # TODO: Ideally, we should terminate the process here,
-            # However, there's an issue with asyncio terminating processes documented at
-            # https://bugs.python.org/issue35539 and https://bugs.python.org/issue41320
-            # process.terminate()
-            wait_for_end = process.wait()
+        
+        if not process:
+            return
+        
+        # Close stdin pipe first to prevent deadlocks
+        # See: https://bugs.python.org/issue35539
+        # If the process is waiting for input, closing stdin will let it continue
+        # and properly respond to termination signals
+        if process.stdin:
             try:
-                await asyncio.wait_for(wait_for_end, timeout=60)
-            except asyncio.TimeoutError:
-                for child in psutil.Process(process.pid).children(recursive=True):
-                    child.kill()
+                process.stdin.close()
+            except Exception:
+                pass
+        
+        if process.returncode is None:
+            # Attempt to terminate the entire process tree
+            try:
+                process_pid = process.pid
+                parent = None
+                try:
+                    parent = psutil.Process(process_pid)
+                    # First try a graceful termination
+                    for child in parent.children(recursive=True):
+                        try:
+                            child.terminate()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+                            pass
+                    parent.terminate()
+                except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+                    pass
                 
-                process.kill()
+                # Wait for the process to exit (maximum 10 seconds)
+                try:
+                    await asyncio.wait_for(process.wait(), timeout=10)
+                except asyncio.TimeoutError:
+                    # Force kill if process doesn't terminate within timeout
+                    try:
+                        if parent and parent.is_running():
+                            for child in parent.children(recursive=True):
+                                try:
+                                    child.kill()
+                                except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+                                    pass
+                            parent.kill()
+                        else:
+                            process.kill()
+                    except Exception:
+                        try:
+                            process.kill()
+                        except Exception:
+                            pass
+                except Exception:
+                    # Force kill on any other exception
+                    try:
+                        process.kill()
+                    except Exception:
+                        pass
+            except Exception:
+                # Last resort: try direct kill
+                try:
+                    process.kill()
+                except Exception:
+                    pass
+        
+        # Close stdout and stderr pipes after process has exited
+        # This is essential to prevent "I/O operation on closed pipe" errors and
+        # "Event loop is closed" errors during garbage collection
+        # See: https://bugs.python.org/issue41320 and https://github.com/python/cpython/issues/88050
+        # The proper order is: close stdin → terminate → wait → close stdout/stderr
+        for pipe_name in ['stdout', 'stderr']:
+            pipe = getattr(process, pipe_name, None)
+            if pipe:
+                try:
+                    pipe.close()
+                except Exception:
+                    pass
+                
+        # Small delay to ensure OS has released file handles
+        await asyncio.sleep(0.5)
 
 
     async def shutdown(self) -> None:
@@ -314,7 +391,7 @@ class LanguageServerHandler:
                 line = await self.process.stderr.readline()
                 if not line:
                     continue
-                self._log("LSP stderr: " + line.decode(ENCODING))
+                self._log("LSP stderr: " + line.decode(ENCODING, errors='replace'))
         except (BrokenPipeError, ConnectionResetError, StopLoopException):
             pass
 

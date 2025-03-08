@@ -1,0 +1,9 @@
+{
+    "_description": "Used to download the runtime dependencies for Kotlin Language Server from https://github.com/fwcd/kotlin-language-server",
+    "runtimeDependency": {
+        "id": "KotlinLsp",
+        "description": "Kotlin Language Server",
+        "url": "https://github.com/fwcd/kotlin-language-server/releases/download/1.3.13/server.zip",
+        "archiveType": "zip"
+    }
+}

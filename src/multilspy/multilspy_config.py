@@ -14,6 +14,7 @@ class Language(str, Enum):
     PYTHON = "python"
     RUST = "rust"
     JAVA = "java"
+    KOTLIN = "kotlin"
     TYPESCRIPT = "typescript"
     JAVASCRIPT = "javascript"
     GO = "go"
