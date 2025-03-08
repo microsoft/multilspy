@@ -234,6 +234,7 @@ class LanguageServerHandler:
         """
         Sends the terminate signal to the language server process and waits for it to exit, with a timeout, killing it if necessary
         """
+        # First cancel all tasks
         pending_tasks = []
         for task in self.tasks.values():
             if not task.done():
@@ -244,6 +245,8 @@ class LanguageServerHandler:
             try:
                 await asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=5.0)
             except asyncio.TimeoutError:
+                pass
+            except Exception:
                 pass
 
         self.tasks = {}
@@ -267,31 +270,48 @@ class LanguageServerHandler:
         if process.returncode is None:
             # Attempt to terminate the entire process tree
             try:
-                for child in psutil.Process(process.pid).children(recursive=True):
-                    try:
-                        child.terminate()
-                    except Exception:
-                        pass
-                process.terminate()
-            except Exception:
-                pass
-            
-            # Wait for the process to exit (maximum 60 seconds)
-            try:
-                await asyncio.wait_for(process.wait(), timeout=60)
-            except asyncio.TimeoutError:
-                # Force kill if process doesn't terminate within timeout
+                process_pid = process.pid
+                parent = None
                 try:
-                    for child in psutil.Process(process.pid).children(recursive=True):
+                    parent = psutil.Process(process_pid)
+                    # First try a graceful termination
+                    for child in parent.children(recursive=True):
                         try:
-                            child.kill()
+                            child.terminate()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+                            pass
+                    parent.terminate()
+                except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+                    pass
+                
+                # Wait for the process to exit (maximum 10 seconds)
+                try:
+                    await asyncio.wait_for(process.wait(), timeout=10)
+                except asyncio.TimeoutError:
+                    # Force kill if process doesn't terminate within timeout
+                    try:
+                        if parent and parent.is_running():
+                            for child in parent.children(recursive=True):
+                                try:
+                                    child.kill()
+                                except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+                                    pass
+                            parent.kill()
+                        else:
+                            process.kill()
+                    except Exception:
+                        try:
+                            process.kill()
                         except Exception:
                             pass
-                    process.kill()
                 except Exception:
-                    pass
+                    # Force kill on any other exception
+                    try:
+                        process.kill()
+                    except Exception:
+                        pass
             except Exception:
-                # Force kill on any other exception
+                # Last resort: try direct kill
                 try:
                     process.kill()
                 except Exception:
@@ -309,6 +329,9 @@ class LanguageServerHandler:
                     pipe.close()
                 except Exception:
                     pass
+                
+        # Small delay to ensure OS has released file handles
+        await asyncio.sleep(0.5)
 
 
     async def shutdown(self) -> None:
@@ -368,7 +391,7 @@ class LanguageServerHandler:
                 line = await self.process.stderr.readline()
                 if not line:
                     continue
-                self._log("LSP stderr: " + line.decode(ENCODING))
+                self._log("LSP stderr: " + line.decode(ENCODING, errors='replace'))
         except (BrokenPipeError, ConnectionResetError, StopLoopException):
             pass
 

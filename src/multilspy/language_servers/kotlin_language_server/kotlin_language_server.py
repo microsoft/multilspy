@@ -2,7 +2,6 @@
 Provides Kotlin specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Kotlin.
 """
 
-import asyncio
 import json
 import logging
 import os
@@ -37,7 +36,6 @@ class KotlinLanguageServer(LanguageServer):
             ProcessLaunchInfo(cmd=kotlin_executable_path, cwd=repository_root_path),
             "kotlin",
         )
-        self.initialize_searcher_command_available = asyncio.Event()
 
     def setup_runtime_dependencies(self, logger: MultilspyLogger, config: MultilspyConfig) -> str:
         """
@@ -124,14 +122,6 @@ class KotlinLanguageServer(LanguageServer):
             # Shutdown the LanguageServer on exit from scope
         # LanguageServer has been shutdown
         """
-
-        async def register_capability_handler(params):
-            assert "registrations" in params
-            for registration in params["registrations"]:
-                if registration["method"] == "workspace/executeCommand":
-                    self.initialize_searcher_command_available.set()
-            return
-
         async def execute_client_command_handler(params):
             return []
 
@@ -141,7 +131,7 @@ class KotlinLanguageServer(LanguageServer):
         async def window_log_message(msg):
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
 
-        self.server.on_request("client/registerCapability", register_capability_handler)
+        self.server.on_request("client/registerCapability", do_nothing)
         self.server.on_notification("language/status", do_nothing)
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
@@ -176,5 +166,9 @@ class KotlinLanguageServer(LanguageServer):
 
             yield self
 
-            await self.server.shutdown()
-            await self.server.stop()
+            try:
+                await self.server.shutdown()
+            except Exception as e:
+                self.logger.log(f"Error during Kotlin server shutdown: {str(e)}", logging.WARNING)
+            finally:
+                await self.server.stop()
