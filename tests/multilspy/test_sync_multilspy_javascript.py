@@ -2,7 +2,7 @@
 This file contains tests for running the JavaScript Language Server: typescript-language-server
 """
 
-from language_server import SyncLanguageServer
+from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import Language
 from tests.test_utils import create_test_context
 from pathlib import PurePath
