@@ -1,10 +1,8 @@
 """
 This file contains tests for running the JavaScript Language Server: typescript-language-server
 """
-import sys
-sys.path.append("/workspaces/multilspy")
-sys.path.append("/workspaces/multilspy/src")
-from multilspy.language_server import SyncLanguageServer
+
+from language_server import SyncLanguageServer
 from multilspy.multilspy_config import Language
 from tests.test_utils import create_test_context
 from pathlib import PurePath
