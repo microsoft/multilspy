@@ -74,23 +74,22 @@ class Solargraph(LanguageServer):
             if result.stdout.strip() == "false":
                 logger.log("Installing Solargraph...", logging.INFO)
                 subprocess.run(dependency["installCommand"].split(), check=True, capture_output=True, cwd=repository_root_path)
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to check or install Solargraph. {e.stderr}")
-
-        # Get the solargraph executable path
-        try:
-            result = subprocess.run([which_cmd, "solargraph"], check=True, capture_output=True, text=True, cwd=repository_root_path)
-            executeable_path = result.stdout.strip()
             
-            if not os.path.exists(executeable_path):
-                raise RuntimeError(f"Solargraph executable not found at {executeable_path}")
+            # Get the gem executable path directly
+            result = subprocess.run(["gem", "which", "solargraph"], check=True, capture_output=True, text=True, cwd=repository_root_path)
+            gem_path = result.stdout.strip()
+            bin_dir = os.path.join(os.path.dirname(os.path.dirname(gem_path)), "bin")
+            executable_path = os.path.join(bin_dir, "solargraph")
+            
+            if not os.path.exists(executable_path):
+                raise RuntimeError(f"Solargraph executable not found at {executable_path}")
             
             # Ensure the executable has the right permissions
-            os.chmod(executeable_path, os.stat(executeable_path).st_mode | stat.S_IEXEC)
+            os.chmod(executable_path, os.stat(executable_path).st_mode | stat.S_IEXEC)
 
-            return executeable_path
-        except subprocess.CalledProcessError:
-            raise RuntimeError("Failed to locate Solargraph executable.")
+            return executable_path
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Failed to check or install Solargraph. {e.stderr}")
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """
