@@ -47,10 +47,6 @@ class Solargraph(LanguageServer):
         """
         Setup runtime dependencies for Solargraph.
         """
-        platform_id = PlatformUtils.get_platform_id()
-        which_cmd = "which"
-        if platform_id in [PlatformId.WIN_x64, PlatformId.WIN_arm64, PlatformId.WIN_x86]:
-            which_cmd = "where"
 
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
             d = json.load(f)
