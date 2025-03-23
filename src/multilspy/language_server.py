@@ -679,7 +679,7 @@ class SyncLanguageServer:
 
         If language is Java, then ensure that jdk-17.0.6 or higher is installed, `java` is in PATH, and JAVA_HOME is set to the installation directory.
 
-        :param repository_root_path: The root path of the repository.
+        :param repository_root_path: The root path of the repository (must be absolute).
         :param config: The Multilspy configuration.
         :param logger: The logger to use.
 
