@@ -400,9 +400,7 @@ class LanguageServer:
                     new_item: multilspy_types.Location = {}
                     new_item.update(item)
                     new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-                    new_item["relativePath"] = str(
-                        PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
-                    )
+                    new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
                     ret.append(multilspy_types.Location(new_item))
                 elif (
                     LSPConstants.ORIGIN_SELECTION_RANGE in item
@@ -413,9 +411,7 @@ class LanguageServer:
                     new_item: multilspy_types.Location = {}
                     new_item["uri"] = item[LSPConstants.TARGET_URI]
                     new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-                    new_item["relativePath"] = str(
-                        PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
-                    )
+                    new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
                     new_item["range"] = item[LSPConstants.TARGET_SELECTION_RANGE]
                     ret.append(multilspy_types.Location(**new_item))
                 else:
@@ -428,9 +424,7 @@ class LanguageServer:
             new_item: multilspy_types.Location = {}
             new_item.update(response)
             new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-            new_item["relativePath"] = str(
-                PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
-            )
+            new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
             ret.append(multilspy_types.Location(**new_item))
         else:
             assert False, f"Unexpected response from Language Server: {response}"
@@ -480,9 +474,7 @@ class LanguageServer:
             new_item: multilspy_types.Location = {}
             new_item.update(item)
             new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-            new_item["relativePath"] = str(
-                PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
-            )
+            new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
             ret.append(multilspy_types.Location(**new_item))
 
         return ret
