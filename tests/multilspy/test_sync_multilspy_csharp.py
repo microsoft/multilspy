@@ -2,6 +2,7 @@
 This file contains tests for running the C# Language Server: OmniSharp
 """
 
+import pytest
 
 from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import Language
