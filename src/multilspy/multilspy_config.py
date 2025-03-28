@@ -19,6 +19,7 @@ class Language(str, Enum):
     GO = "go"
     RUBY = "ruby"
     DART = "dart"
+    PERL = "perl"
 
     def __str__(self) -> str:
         return self.value
