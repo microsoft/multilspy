@@ -28,7 +28,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "jedi-language-server==0.41.1",
+  "jedi-language-server==0.41.3",
   "requests==2.32.3",
   "typing-extensions>=4.2.0",
   "psutil (>=7.0.0,<8.0.0)"
