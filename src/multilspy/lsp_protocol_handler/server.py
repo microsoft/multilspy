@@ -234,27 +234,110 @@ class LanguageServerHandler:
         """
         Sends the terminate signal to the language server process and waits for it to exit, with a timeout, killing it if necessary
         """
-        for task in self.tasks.values():
-            task.cancel()
-
-        self.tasks = {}
-
+        # First cancel all tasks
+        await self._cancel_pending_tasks()
+    
         process = self.process
         self.process = None
+    
+        if not process:
+            return
+    
+        # Clean up the process
+        await self._cleanup_process(process)
 
-        if process:
-            # TODO: Ideally, we should terminate the process here,
-            # However, there's an issue with asyncio terminating processes documented at
-            # https://bugs.python.org/issue35539 and https://bugs.python.org/issue41320
-            # process.terminate()
-            wait_for_end = process.wait()
+    async def _cancel_pending_tasks(self):
+        """Cancel all pending tasks and wait for them to complete or timeout."""
+        pending_tasks = []
+        for task in self.tasks.values():
+            if not task.done():
+                task.cancel()
+                pending_tasks.append(task)
+
+        if pending_tasks:
             try:
-                await asyncio.wait_for(wait_for_end, timeout=60)
-            except asyncio.TimeoutError:
-                for child in psutil.Process(process.pid).children(recursive=True):
-                    child.kill()
-                
-                process.kill()
+                await asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=5.0)
+            except (asyncio.TimeoutError, Exception):
+                pass
+    
+        self.tasks = {}
+
+    async def _cleanup_process(self, process):
+        """Clean up a process: close stdin, terminate/kill process, close stdout/stderr."""
+        # Close stdin first to prevent deadlocks
+        # See: https://bugs.python.org/issue35539
+        self._safely_close_pipe(process.stdin)
+    
+        # Terminate/kill the process if it's still running
+        if process.returncode is None:
+            await self._terminate_or_kill_process(process)
+    
+        # Close stdout and stderr pipes after process has exited
+        # This is essential to prevent "I/O operation on closed pipe" errors and
+        # "Event loop is closed" errors during garbage collection
+        # See: https://bugs.python.org/issue41320 and https://github.com/python/cpython/issues/88050
+        self._safely_close_pipe(process.stdout)
+        self._safely_close_pipe(process.stderr)
+    
+        # Small delay to ensure OS has released file handles
+        await asyncio.sleep(0.5)
+
+    def _safely_close_pipe(self, pipe):
+        """Safely close a pipe, ignoring any exceptions."""
+        if pipe:
+            try:
+                pipe.close()
+            except Exception:
+                pass
+
+    async def _terminate_or_kill_process(self, process):
+        """Try to terminate the process gracefully, then forcefully if necessary."""
+        # First try to terminate the process tree gracefully
+        self._signal_process_tree(process, terminate=True)
+    
+        # Wait for the process to exit (with timeout)
+        try:
+            await asyncio.wait_for(process.wait(), timeout=10)
+        except (asyncio.TimeoutError, Exception):
+            # If termination failed, forcefully kill the process tree
+            self._signal_process_tree(process, terminate=False)
+            try:
+                # Give it one more chance to exit
+                await asyncio.wait_for(process.wait(), timeout=2)
+            except Exception:
+                pass
+
+    def _signal_process_tree(self, process, terminate=True):
+        """Send signal (terminate or kill) to the process and all its children."""
+        signal_method = "terminate" if terminate else "kill"
+    
+        # Try to get the parent process
+        parent = None
+        try:
+            parent = psutil.Process(process.pid)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+            pass
+    
+        # If we have the parent process and it's running, signal the entire tree
+        if parent and parent.is_running():
+            # Signal children first
+            for child in parent.children(recursive=True):
+                try:
+                    getattr(child, signal_method)()
+                except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+                    pass
+        
+            # Then signal the parent
+            try:
+                getattr(parent, signal_method)()
+            except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+                pass
+        else:
+            # Fall back to direct process signaling
+            try:
+                getattr(process, signal_method)()
+            except Exception:
+                pass
 
 
     async def shutdown(self) -> None:
@@ -314,7 +397,7 @@ class LanguageServerHandler:
                 line = await self.process.stderr.readline()
                 if not line:
                     continue
-                self._log("LSP stderr: " + line.decode(ENCODING))
+                self._log("LSP stderr: " + line.decode(ENCODING, errors='replace'))
         except (BrokenPipeError, ConnectionResetError, StopLoopException):
             pass
 

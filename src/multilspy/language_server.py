@@ -85,6 +85,12 @@ class LanguageServer:
             )
 
             return EclipseJDTLS(config, logger, repository_root_path)
+        elif config.code_language == Language.KOTLIN:
+            from multilspy.language_servers.kotlin_language_server.kotlin_language_server import (
+                KotlinLanguageServer,
+            )
+
+            return KotlinLanguageServer(config, logger, repository_root_path)
         elif config.code_language == Language.RUST:
             from multilspy.language_servers.rust_analyzer.rust_analyzer import (
                 RustAnalyzer,
