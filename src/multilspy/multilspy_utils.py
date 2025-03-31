@@ -5,7 +5,7 @@ This file contains various utility functions like I/O operations, handling paths
 import gzip
 import logging
 import os
-from typing import Tuple
+from typing import Tuple, Union
 import requests
 import shutil
 import uuid
@@ -88,6 +88,16 @@ class PathUtils:
         parsed = urlparse(uri)
         host = "{0}{0}{mnt}{0}".format(os.path.sep, mnt=parsed.netloc)
         return os.path.normpath(os.path.join(host, url2pathname(unquote(parsed.path))))
+
+    @staticmethod
+    def get_relative_path(path: str, base_path: str) -> Union[str, None]:
+        """
+        Gets relative path if it's possible (paths should be on the same drive),
+        returns `None` otherwise.
+        """
+        if PurePath(path).drive == PurePath(base_path).drive:
+            return str(PurePath(os.path.relpath(path, base_path)))
+        return None
 
 class FileUtils:
     """
