@@ -72,24 +72,24 @@ class KotlinLanguageServer(LanguageServer):
             del d["_description"]
         
         kotlin_dependency = d["runtimeDependency"]
-        jdk_dependency = d["jdk"][platform_id.value]
+        java_dependency = d["java"][platform_id.value]
 
         # Setup paths for dependencies
         static_dir = os.path.join(os.path.dirname(__file__), "static")
         os.makedirs(static_dir, exist_ok=True)
         
-        # Setup JDK paths
-        jdk_dir = os.path.join(static_dir, "jdk")
-        os.makedirs(jdk_dir, exist_ok=True)
+        # Setup Java paths
+        java_dir = os.path.join(static_dir, "java")
+        os.makedirs(java_dir, exist_ok=True)
         
-        java_home_path = os.path.join(jdk_dir, jdk_dependency["java_home_path"])
-        java_path = os.path.join(jdk_dir, jdk_dependency["java_path"])
+        java_home_path = os.path.join(java_dir, java_dependency["java_home_path"])
+        java_path = os.path.join(java_dir, java_dependency["java_path"])
         
-        # Download and extract JDK if not exists
+        # Download and extract Java if not exists
         if not os.path.exists(java_path):
-            logger.log(f"Downloading JDK for {platform_id.value}...", logging.INFO)
+            logger.log(f"Downloading Java for {platform_id.value}...", logging.INFO)
             FileUtils.download_and_extract_archive(
-                logger, jdk_dependency["url"], jdk_dir, jdk_dependency["archiveType"]
+                logger, java_dependency["url"], java_dir, java_dependency["archiveType"]
             )
             # Make Java executable
             if not platform_id.value.startswith("win-"):
@@ -180,6 +180,7 @@ class KotlinLanguageServer(LanguageServer):
             await lsp.request_references(...)
             # Shutdown the LanguageServer on exit from scope
         # LanguageServer has been shutdown
+        ```
         """
         async def execute_client_command_handler(params):
             return []

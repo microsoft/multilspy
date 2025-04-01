@@ -48,6 +48,7 @@ pip install multilspy
 | go | gopls |
 | dart | Dart |
 | ruby | Solargraph |
+| kotlin | KotlinLanguageServer |
 
 
 ## Usage
