@@ -72,6 +72,23 @@ async def test_multilspy_rust_carbonyl():
                 ],
             )
 
+            result = await lsp.request_workspace_symbol("parse_or_run")
+
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+            assert result == [{
+                'name': 'parse_or_run',
+                'kind': 12,
+                'location': {
+                    'uri': PurePath(context.source_directory, "src/cli/program.rs").as_uri(),
+                    'range': {
+                        'start': {'line': 10, 'character': 4},
+                        'end': {'line': 24, 'character': 5}
+                    }
+                }
+            }]
+
 @pytest.mark.asyncio
 async def test_multilspy_rust_completions_mediaplayer() -> None:
     """
