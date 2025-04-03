@@ -13,12 +13,6 @@
             "java_home_path": "extension/jre/17.0.8.1-win32-x86_64",
             "java_path": "extension/jre/17.0.8.1-win32-x86_64/bin/java.exe"
         },
-        "win-arm64": {
-            "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.6%2B7/OpenJDK21U-jdk_aarch64_windows_hotspot_21.0.6_7.zip",
-            "archiveType": "zip",
-            "java_home_path": "jdk-21.0.6+7",
-            "java_path": "jdk-21.0.6+7/bin/java.exe"
-        },
         "linux-x64": {
             "url": "https://github.com/redhat-developer/vscode-java/releases/download/v1.23.0/java@linux-x64-1.23.0.vsix",
             "archiveType": "zip",
