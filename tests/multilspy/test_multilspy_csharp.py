@@ -14,6 +14,7 @@ pytest_plugins = ("pytest_asyncio",)
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Need to find alternative repository to test")
 async def test_multilspy_csharp_ryujinx():
     """
     Test the working of multilspy with C# repository - Ryujinx

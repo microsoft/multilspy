@@ -85,6 +85,12 @@ class LanguageServer:
             )
 
             return EclipseJDTLS(config, logger, repository_root_path)
+        elif config.code_language == Language.KOTLIN:
+            from multilspy.language_servers.kotlin_language_server.kotlin_language_server import (
+                KotlinLanguageServer,
+            )
+
+            return KotlinLanguageServer(config, logger, repository_root_path)
         elif config.code_language == Language.RUST:
             from multilspy.language_servers.rust_analyzer.rust_analyzer import (
                 RustAnalyzer,
@@ -404,9 +410,7 @@ class LanguageServer:
                     new_item: multilspy_types.Location = {}
                     new_item.update(item)
                     new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-                    new_item["relativePath"] = str(
-                        PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
-                    )
+                    new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
                     ret.append(multilspy_types.Location(new_item))
                 elif (
                     LSPConstants.ORIGIN_SELECTION_RANGE in item
@@ -417,9 +421,7 @@ class LanguageServer:
                     new_item: multilspy_types.Location = {}
                     new_item["uri"] = item[LSPConstants.TARGET_URI]
                     new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-                    new_item["relativePath"] = str(
-                        PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
-                    )
+                    new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
                     new_item["range"] = item[LSPConstants.TARGET_SELECTION_RANGE]
                     ret.append(multilspy_types.Location(**new_item))
                 else:
@@ -432,9 +434,7 @@ class LanguageServer:
             new_item: multilspy_types.Location = {}
             new_item.update(response)
             new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-            new_item["relativePath"] = str(
-                PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
-            )
+            new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
             ret.append(multilspy_types.Location(**new_item))
         else:
             assert False, f"Unexpected response from Language Server: {response}"
@@ -484,9 +484,7 @@ class LanguageServer:
             new_item: multilspy_types.Location = {}
             new_item.update(item)
             new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
-            new_item["relativePath"] = str(
-                PurePath(os.path.relpath(new_item["absolutePath"], self.repository_root_path))
-            )
+            new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
             ret.append(multilspy_types.Location(**new_item))
 
         return ret
@@ -661,6 +659,33 @@ class LanguageServer:
 
         return multilspy_types.Hover(**response)
 
+    async def request_workspace_symbol(self, query: str) -> Union[List[multilspy_types.UnifiedSymbolInformation], None]:
+        """
+        Raise a [workspace/symbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbol) request to the Language Server
+        to find symbols across the whole workspace. Wait for the response and return the result.
+
+        :param query: The query string to filter symbols by
+
+        :return Union[List[multilspy_types.UnifiedSymbolInformation], None]: A list of matching symbols
+        """
+        response = await self.server.send.workspace_symbol({"query": query})
+        if response is None:
+            return None
+
+        assert isinstance(response, list)
+
+        ret: List[multilspy_types.UnifiedSymbolInformation] = []
+        for item in response:
+            assert isinstance(item, dict)
+
+            assert LSPConstants.NAME in item
+            assert LSPConstants.KIND in item
+            assert LSPConstants.LOCATION in item
+
+            ret.append(multilspy_types.UnifiedSymbolInformation(**item))
+
+        return ret
+
 @ensure_all_methods_implemented(LanguageServer)
 class SyncLanguageServer:
     """
@@ -683,7 +708,7 @@ class SyncLanguageServer:
 
         If language is Java, then ensure that jdk-17.0.6 or higher is installed, `java` is in PATH, and JAVA_HOME is set to the installation directory.
 
-        :param repository_root_path: The root path of the repository.
+        :param repository_root_path: The root path of the repository (must be absolute).
         :param config: The Multilspy configuration.
         :param logger: The logger to use.
 
@@ -829,5 +854,19 @@ class SyncLanguageServer:
         """
         result = asyncio.run_coroutine_threadsafe(
             self.language_server.request_hover(relative_file_path, line, column), self.loop
+        ).result(timeout=self.timeout)
+        return result
+
+    def request_workspace_symbol(self, query: str) -> Union[List[multilspy_types.UnifiedSymbolInformation], None]:
+        """
+        Raise a [workspace/symbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbol) request to the Language Server
+        to find symbols across the whole workspace. Wait for the response and return the result.
+
+        :param query: The query string to filter symbols by
+
+        :return Union[List[multilspy_types.UnifiedSymbolInformation], None]: A list of matching symbols
+        """
+        result = asyncio.run_coroutine_threadsafe(
+            self.language_server.request_workspace_symbol(query), self.loop
         ).result(timeout=self.timeout)
         return result
