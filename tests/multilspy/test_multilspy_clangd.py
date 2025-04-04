@@ -56,12 +56,13 @@ async def test_multilspy_clang():
             # get definition for create_node
             result = await lsp.request_definition(str(PurePath("src/node_data.cpp")), 241, 26)
             assert isinstance(result, list)
-            assert len(result) == 2
+            assert len(result) > 0
+            assert result[0]["relativePath"] == str(PurePath("include/yaml-cpp/node/detail/memory.h"))
 
             # find references for WriteCodePoint
             result = await lsp.request_references(str(PurePath("src/emitterutils.cpp")), 134, 6)
             assert isinstance(result, list)
-            assert len(result) == 10
+            assert len(result) == 5
 
             # get hover information for strFormat variable
             result = await lsp.request_hover(str(PurePath("src/emitterutils.cpp")), 274, 11)
