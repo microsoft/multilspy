@@ -40,7 +40,7 @@ async def test_multilspy_clang():
     code_language = Language.CPP
     params = {
         "code_language": code_language,
-        "repo_url": "https://github.com/tomorrowCoder/yaml-cpp/",
+        "repo_url": "https://github.com/jbeder/yaml-cpp/",
         "repo_commit": "39f737443b05e4135e697cb91c2b7b18095acd53"
     }
     with create_test_context(params) as context:
@@ -50,9 +50,6 @@ async def test_multilspy_clang():
         lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
 
         async with lsp.start_server():
-            # Wait for server to be fully initialized
-            await lsp.server_ready.wait()
-
             # get definition for create_node
             result = await lsp.request_definition(str(PurePath("src/node_data.cpp")), 241, 26)
             assert isinstance(result, list)

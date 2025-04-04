@@ -62,7 +62,7 @@ class ClangdLanguageServer(LanguageServer):
         assert len(runtime_dependencies) == 1
         dependency = runtime_dependencies[0]
 
-        clangd_ls_dir = os.path.join(os.path.dirname(__file__), "clangd")
+        clangd_ls_dir = os.path.join(os.path.dirname(__file__), "static/clangd")
         clangd_executable_path = os.path.join(clangd_ls_dir, "clangd_19.1.2", "bin", dependency["binaryName"])
         if not os.path.exists(clangd_ls_dir):
             os.makedirs(clangd_ls_dir)
@@ -161,13 +161,11 @@ class ClangdLanguageServer(LanguageServer):
             )
             init_response = await self.server.send.initialize(initialize_params)
             assert init_response["capabilities"]["textDocumentSync"]["change"] == 2
-            assert "completionProvider" in init_response["capabilities"]
-            '''
+            assert "completionProvider" in init_response["capabilities"]          
             assert init_response["capabilities"]["completionProvider"] == {
-                "triggerCharacters": [":", ".", "'", "("],
-                "resolveProvider": True,
+                "triggerCharacters": ['.', '<', '>', ':', '"', '/', '*'],
+                "resolveProvider": False,
             }
-            '''
 
             self.server.notify.initialized({})
 
