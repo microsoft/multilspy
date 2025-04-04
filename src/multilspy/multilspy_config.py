@@ -20,6 +20,7 @@ class Language(str, Enum):
     GO = "go"
     RUBY = "ruby"
     DART = "dart"
+    CPP = "cpp"
 
     def __str__(self) -> str:
         return self.value

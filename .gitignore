@@ -403,6 +403,7 @@ src/multilspy/language_servers/omnisharp/static/
 src/multilspy/language_servers/rust_analyzer/static/
 src/multilspy/language_servers/typescript_language_server/static/
 src/multilspy/language_servers/dart_language_server/static/
+src/multilspy/language_servers/clangd_language_server/static/
 
 # Virtual Environment
 .venv/
