@@ -3,7 +3,7 @@ name: Test Multilspy
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ main ]
+    branches: [ main, feat/* ]
   pull_request:
 
 jobs:

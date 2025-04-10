@@ -14,11 +14,13 @@ class Language(str, Enum):
     PYTHON = "python"
     RUST = "rust"
     JAVA = "java"
+    KOTLIN = "kotlin"
     TYPESCRIPT = "typescript"
     JAVASCRIPT = "javascript"
     GO = "go"
     RUBY = "ruby"
     DART = "dart"
+    CPP = "cpp"
 
     def __str__(self) -> str:
         return self.value
