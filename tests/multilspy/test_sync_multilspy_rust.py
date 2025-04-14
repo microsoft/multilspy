@@ -65,3 +65,20 @@ def test_multilspy_rust_carbonyl() -> None:
                     },
                 ],
             )
+
+            result = lsp.request_workspace_symbol("parse_or_run")
+
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+            assert result == [{
+                'name': 'parse_or_run',
+                'kind': 12,
+                'location': {
+                    'uri': PurePath(context.source_directory, "src/cli/program.rs").as_uri(),
+                    'range': {
+                        'start': {'line': 10, 'character': 4},
+                        'end': {'line': 24, 'character': 5}
+                    }
+                }
+            }]
