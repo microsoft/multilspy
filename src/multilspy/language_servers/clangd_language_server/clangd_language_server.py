@@ -52,17 +52,22 @@ class ClangdLanguageServer(LanguageServer):
             del d["_description"]
 
         assert platform_id.value in [
-            "linux-x64"
-        ], "Only linux-x64 is supported for in multilspy at the moment"
+            "linux-x64",
+            "win-x64",
+            "osx-arm64",
+        ], "Unsupported platform: " + platform_id.value
 
         runtime_dependencies = d["runtimeDependencies"]
         runtime_dependencies = [
             dependency for dependency in runtime_dependencies if dependency["platformId"] == platform_id.value
         ]
         assert len(runtime_dependencies) == 1
-        dependency = runtime_dependencies[0]
+        # Select dependency matching the current platform
+        dependency = next((dep for dep in runtime_dependencies if dep["platformId"] == platform_id.value), None)
+        if dependency is None:
+            raise RuntimeError(f"No runtime dependency found for platform {platform_id.value}")
 
-        clangd_ls_dir = os.path.join(os.path.dirname(__file__), "static/clangd")
+        clangd_ls_dir = os.path.join(os.path.dirname(__file__), "static", "clangd")
         clangd_executable_path = os.path.join(clangd_ls_dir, "clangd_19.1.2", "bin", dependency["binaryName"])
         if not os.path.exists(clangd_ls_dir):
             os.makedirs(clangd_ls_dir)
@@ -70,7 +75,10 @@ class ClangdLanguageServer(LanguageServer):
                 FileUtils.download_and_extract_archive(
                     logger, dependency["url"], clangd_ls_dir, dependency["archiveType"]
                 )
-        assert os.path.exists(clangd_executable_path)
+            else:
+                raise RuntimeError(f"Unsupported archive type: {dependency['archiveType']}")
+            if not os.path.exists(clangd_executable_path):
+                raise FileNotFoundError(f"clangd executable was not found at {clangd_executable_path} after extraction")
         os.chmod(clangd_executable_path, stat.S_IEXEC)
 
         return clangd_executable_path
