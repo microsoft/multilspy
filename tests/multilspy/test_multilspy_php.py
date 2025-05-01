@@ -219,3 +219,33 @@ async def test_multilspy_php():
                     },
                 },
             ]
+
+
+@pytest.mark.asyncio
+async def test_multilspy_php_multiple_references():
+    """
+    Test the working of multilspy with PHP Language Server
+    """
+    code_language = Language.PHP
+    params = {
+        "code_language": code_language,
+        "repo_url": "https://github.com/myclabs/DeepCopy/",
+        "repo_commit": "1720ddd719e16cf0db4eb1c6eca108031636d46c",
+    }
+    with create_test_context(params) as context:
+        lsp = LanguageServer.create(
+            context.config, context.logger, context.source_directory
+        )
+
+        async with lsp.start_server():
+            result = await lsp.request_references(
+                file_path=str(PurePath("src/DeepCopy/DeepCopy.php")),
+                line=27,
+                column=8,
+            )
+
+            """
+            This should be greater than 0 but the language server is not finding
+            the references for some reason.
+            """
+            assert len(result) > 0
