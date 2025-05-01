@@ -1,0 +1,10 @@
+{
+    "_description": "Used to download the runtime dependencies for running Phpactor Language Server, downloaded from https://phpactor.readthedocs.io/",
+    "runtimeDependencies": [
+        {
+            "id": "intelephense",
+            "description": "Intelephense PHP language server for Linux, macOS, and Windows. Both x64 and arm64 are supported.",
+            "command": "npm install --prefix ./ intelephense@1.14.4"
+        }
+    ]
+}
