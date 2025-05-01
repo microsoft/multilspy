@@ -408,3 +408,6 @@ src/multilspy/language_servers/clangd_language_server/static/
 # Virtual Environment
 .venv/
 venv/
+
+
+static/
