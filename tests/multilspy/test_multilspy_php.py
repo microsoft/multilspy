@@ -24,14 +24,13 @@ async def test_multilspy_php():
     }
     print("Creating test context...")
     with create_test_context(params) as context:
-        print("Creating context...")
         lsp = LanguageServer.create(
             context.config, context.logger, context.source_directory
         )
-        print("Starting server...")
-
         async with lsp.start_server():
-            print("Starting test...")
+            result
+
+
             result = await lsp.request_document_symbols(
                 str(
                     PurePath(
@@ -42,8 +41,6 @@ async def test_multilspy_php():
 
             assert isinstance(result, tuple)
             assert len(result) == 2
-
-            print("Result:", result)
 
             symbols = result[0]
 
@@ -205,3 +202,5 @@ async def test_multilspy_php():
                     },
                 },
             ]
+
+            
