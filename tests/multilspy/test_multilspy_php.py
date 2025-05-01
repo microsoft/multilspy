@@ -22,14 +22,31 @@ async def test_multilspy_php():
         "repo_url": "https://github.com/phpactor/phpactor/",
         "repo_commit": "bfc8a7040bed145a35fb9afee0ddd645297b9ed9",
     }
-    print("Creating test context...")
+
     with create_test_context(params) as context:
         lsp = LanguageServer.create(
             context.config, context.logger, context.source_directory
         )
         async with lsp.start_server():
-            result
+            result = await lsp.request_definition(
+                str(PurePath("lib/ConfigLoader/Tests/TestCase.php")),
+                13,
+                16,
+            )
 
+            for item in result:
+                del item["uri"]
+                del item["absolutePath"]
+
+            assert result == [
+                {
+                    "range": {
+                        "start": {"line": 9, "character": 24},
+                        "end": {"line": 9, "character": 34},
+                    },
+                    "relativePath": "lib/ConfigLoader/Tests/TestCase.php",
+                }
+            ]
 
             result = await lsp.request_document_symbols(
                 str(
@@ -202,5 +219,3 @@ async def test_multilspy_php():
                     },
                 },
             ]
-
-            
