@@ -50,6 +50,7 @@ pip install multilspy
 | ruby | Solargraph |
 | kotlin | KotlinLanguageServer |
 | php | Intelephense |
+| cpp | clangd |
 
 
 ## Usage
