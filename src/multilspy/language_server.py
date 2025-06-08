@@ -122,6 +122,10 @@ class LanguageServer:
             from multilspy.language_servers.clangd_language_server.clangd_language_server import ClangdLanguageServer
 
             return ClangdLanguageServer(config, logger, repository_root_path)
+        elif config.code_language == Language.CLOJURE:
+            from multilspy.language_servers.clojure_lsp.clojure_lsp import ClojureLSP
+
+            return ClojureLSP(config, logger, repository_root_path)
         else:
             logger.log(f"Language {config.code_language} is not supported", logging.ERROR)
             raise MultilspyException(f"Language {config.code_language} is not supported")
