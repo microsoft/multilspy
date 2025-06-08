@@ -384,7 +384,7 @@ class LanguageServer:
 
         if not self.server_started:
             self.logger.log(
-                "find_function_definition called before Language Server started",
+                "request_definition called before Language Server started",
                 logging.ERROR,
             )
             raise MultilspyException("Language Server not started")
