@@ -1,6 +1,6 @@
 jedi-language-server==0.41.1
 pytest==7.3.1
 pytest-asyncio==0.21.1
-requests==2.32.3
+requests==2.32.4
 typing-extensions>=4.2.0
 psutil>=7.0.0,<8.0.0
