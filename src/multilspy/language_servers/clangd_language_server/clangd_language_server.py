@@ -181,8 +181,8 @@ class ClangdLanguageServer(LanguageServer):
             # set ready flag
             self.server_ready.set()
             await self.server_ready.wait()
-
-            yield self
-
-            await self.server.shutdown()
-            await self.server.stop()
+            try:
+                yield self
+            finally:
+                await self.server.shutdown()
+                await self.server.stop()
