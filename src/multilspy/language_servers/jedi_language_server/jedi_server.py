@@ -113,8 +113,8 @@ class JediServer(LanguageServer):
             }
 
             self.server.notify.initialized({})
-
-            yield self
-
-            await self.server.shutdown()
-            await self.server.stop()
+            try:
+                yield self
+            finally:
+                await self.server.shutdown()
+                await self.server.stop()
