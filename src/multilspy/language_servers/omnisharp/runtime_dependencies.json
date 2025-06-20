@@ -4,7 +4,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Windows (.NET 4 / x86)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-win-x86.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-win-x86.zip",
             "installPath": ".omnisharp/1.39.13",
             "platforms": [
                 "win32"
@@ -22,7 +22,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Windows (.NET 6 / x86)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-win-x86-net6.0.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-win-x86-net6.0.zip",
             "installPath": ".omnisharp/1.39.13-net6.0",
             "platforms": [
                 "win32"
@@ -40,7 +40,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Windows (.NET 4 / x64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-win-x64.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-win-x64.zip",
             "installPath": ".omnisharp/1.39.13",
             "platforms": [
                 "win32"
@@ -58,7 +58,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Windows (.NET 6 / x64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-win-x64-net6.0.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-win-x64-net6.0.zip",
             "installPath": ".omnisharp/1.39.13-net6.0",
             "platforms": [
                 "win32"
@@ -76,7 +76,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Windows (.NET 4 / arm64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-win-arm64.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-win-arm64.zip",
             "installPath": ".omnisharp/1.39.13",
             "platforms": [
                 "win32"
@@ -94,7 +94,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Windows (.NET 6 / arm64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-win-arm64-net6.0.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-win-arm64-net6.0.zip",
             "installPath": ".omnisharp/1.39.13-net6.0",
             "platforms": [
                 "win32"
@@ -111,8 +111,8 @@
         },
         {
             "id": "OmniSharp",
-            "description": "OmniSharp for OSX (Mono / x64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-osx.zip",
+            "description": "OmniSharp for OSX (Mono / x64, arm64)",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-osx.zip",
             "installPath": ".omnisharp/1.39.13",
             "platforms": [
                 "darwin"
@@ -134,7 +134,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for OSX (.NET 6 / x64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-osx-x64-net6.0.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-osx-x64-net6.0.zip",
             "installPath": ".omnisharp/1.39.13-net6.0",
             "platforms": [
                 "darwin"
@@ -151,7 +151,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for OSX (.NET 6 / arm64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-osx-arm64-net6.0.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-osx-arm64-net6.0.zip",
             "installPath": ".omnisharp/1.39.13-net6.0",
             "platforms": [
                 "darwin"
@@ -167,8 +167,8 @@
         },
         {
             "id": "OmniSharp",
-            "description": "OmniSharp for Linux (Mono / x86)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-linux-x86.zip",
+            "description": "OmniSharp for Linux (Mono / x86, i686)",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-linux-x86.zip",
             "installPath": ".omnisharp/1.39.13",
             "platforms": [
                 "linux"
@@ -190,7 +190,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Linux (Mono / x64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-linux-x64.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-linux-x64.zip",
             "installPath": ".omnisharp/1.39.13",
             "platforms": [
                 "linux"
@@ -211,7 +211,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Linux (.NET 6 / x64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-linux-x64-net6.0.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-linux-x64-net6.0.zip",
             "installPath": ".omnisharp/1.39.13-net6.0",
             "platforms": [
                 "linux"
@@ -229,7 +229,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Linux (Mono / arm64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-linux-arm64.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-linux-arm64.zip",
             "installPath": ".omnisharp/1.39.13",
             "platforms": [
                 "linux"
@@ -250,7 +250,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Linux (.NET 6 / arm64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-linux-arm64-net6.0.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-linux-arm64-net6.0.zip",
             "installPath": ".omnisharp/1.39.13-net6.0",
             "platforms": [
                 "linux"
@@ -267,7 +267,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Linux musl (.NET 6 / x64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-linux-musl-x64-net6.0.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-linux-musl-x64-net6.0.zip",
             "installPath": ".omnisharp/1.39.13-net6.0",
             "platforms": [
                 "linux-musl"
@@ -284,7 +284,7 @@
         {
             "id": "OmniSharp",
             "description": "OmniSharp for Linux musl (.NET 6 / arm64)",
-            "url": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.39.13/omnisharp-linux-musl-arm64-net6.0.zip",
+            "url": "https://roslynomnisharp.blob.core.windows.net/releases/1.39.13/omnisharp-linux-musl-arm64-net6.0.zip",
             "installPath": ".omnisharp/1.39.13-net6.0",
             "platforms": [
                 "linux-musl"
