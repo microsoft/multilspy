@@ -1,0 +1,40 @@
+{
+  "_description": "ElixirLS package - single platform-agnostic release with platform-specific binary names",
+  "runtimeDependencies": [
+    {
+      "id": "elixir-ls",
+      "platformId": "osx-arm64",
+      "url": "https://github.com/elixir-lsp/elixir-ls/releases/latest/download/elixir-ls-v0.28.0.zip",
+      "archiveType": "zip",
+      "binaryName": "language_server.sh"
+    },
+    {
+      "id": "elixir-ls",
+      "platformId": "osx-x64",
+      "url": "https://github.com/elixir-lsp/elixir-ls/releases/latest/download/elixir-ls-v0.28.0.zip",
+      "archiveType": "zip",
+      "binaryName": "language_server.sh"
+    },
+    {
+      "id": "elixir-ls",
+      "platformId": "linux-x64",
+      "url": "https://github.com/elixir-lsp/elixir-ls/releases/latest/download/elixir-ls-v0.28.0.zip",
+      "archiveType": "zip",
+      "binaryName": "language_server.sh"
+    },
+    {
+      "id": "elixir-ls",
+      "platformId": "linux-arm64",
+      "url": "https://github.com/elixir-lsp/elixir-ls/releases/latest/download/elixir-ls-v0.28.0.zip",
+      "archiveType": "zip",
+      "binaryName": "language_server.sh"
+    },
+    {
+      "id": "elixir-ls",
+      "platformId": "windows-x64",
+      "url": "https://github.com/elixir-lsp/elixir-ls/releases/latest/download/elixir-ls-v0.28.0.zip",
+      "archiveType": "zip",
+      "binaryName": "language_server.bat"
+    }
+  ]
+}
