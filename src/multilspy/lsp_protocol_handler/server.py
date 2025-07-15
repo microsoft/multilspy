@@ -59,6 +59,10 @@ class ProcessLaunchInfo:
     # The working directory for the process
     cwd: str = os.getcwd()
 
+    # The buffer limit for StreamReader for stdout and stderr
+    # when stdout and stderr are piped
+    limit: int = None
+
 
 class Error(Exception):
     def __init__(self, code: ErrorCodes, message: str) -> None:
@@ -219,6 +223,7 @@ class LanguageServerHandler:
             stdout=asyncio.subprocess.PIPE,
             stdin=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            limit=self.process_launch_info.limit,
             env=child_proc_env,
             cwd=self.process_launch_info.cwd,
             start_new_session=self.start_independent_lsp_process,
