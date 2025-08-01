@@ -21,7 +21,6 @@ class Language(str, Enum):
     RUBY = "ruby"
     DART = "dart"
     CPP = "cpp"
-    CLOJURE = "clojure"
 
     def __str__(self) -> str:
         return self.value
