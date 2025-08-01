@@ -396,8 +396,8 @@ class OmniSharp(LanguageServer):
 
             await self.definition_available.wait()
             await self.references_available.wait()
-
-            yield self
-
-            await self.server.shutdown()
-            await self.server.stop()
+            try:
+                yield self
+            finally:
+                await self.server.shutdown()
+                await self.server.stop()

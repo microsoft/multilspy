@@ -144,8 +144,8 @@ class Gopls(LanguageServer):
             # gopls server is typically ready immediately after initialization
             self.server_ready.set()
             await self.server_ready.wait()
-
-            yield self
-
-            await self.server.shutdown()
-            await self.server.stop()
+            try:
+                yield self
+            finally:
+                await self.server.shutdown()
+                await self.server.stop()
