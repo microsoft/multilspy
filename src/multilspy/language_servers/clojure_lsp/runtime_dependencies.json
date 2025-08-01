@@ -1,0 +1,37 @@
+{
+    "_description": "Binary distributions of clojure-lsp.",
+    "runtimeDependencies": [
+        {
+            "id": "clojure-lsp",
+            "description": "clojure-lsp for OSX (ARM64)",
+            "url": "https://github.com/clojure-lsp/clojure-lsp/releases/latest/download/clojure-lsp-native-macos-aarch64.zip",
+            "platformId": "osx-arm64",
+            "archiveType": "zip",
+            "binaryName": "clojure-lsp"
+        },
+        {
+            "id": "clojure-lsp",
+            "description": "clojure-lsp for Linux (ARM64)",
+            "url": "https://github.com/clojure-lsp/clojure-lsp/releases/latest/download/clojure-lsp-native-linux-aarch64.zip",
+            "platformId": "linux-arm64",
+            "archiveType": "zip",
+            "binaryName": "clojure-lsp"
+        },
+        {
+            "id": "clojure-lsp",
+            "description": "clojure-lsp for Linux (x64)",
+            "url": "https://github.com/clojure-lsp/clojure-lsp/releases/latest/download/clojure-lsp-native-linux-amd64.zip",
+            "platformId": "linux-x64",
+            "archiveType": "zip",
+            "binaryName": "clojure-lsp"
+        },
+        {
+            "id": "clojure-lsp",
+            "description": "clojure-lsp for Windows (x64)",
+            "url": "https://github.com/clojure-lsp/clojure-lsp/releases/latest/download/clojure-lsp-native-windows-amd64.zip",
+            "platformId": "win-x64",
+            "archiveType": "zip",
+            "binaryName": "clojure-lsp"
+        }
+    ]
+}
