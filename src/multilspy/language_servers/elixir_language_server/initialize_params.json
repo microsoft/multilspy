@@ -1,0 +1,48 @@
+{
+  "_description": "This file contains the initialization parameters for the Elixir Language Server.",
+  "processId": "$processId",
+  "rootPath": "$rootPath",
+  "rootUri": "$rootUri",
+  "capabilities": {
+    "textDocument": {
+      "hover": {
+        "contentFormat": ["markdown", "plaintext"]
+      },
+      "completion": {
+        "completionItem": {
+          "snippetSupport": true,
+          "documentationFormat": ["markdown", "plaintext"]
+        }
+      },
+      "definition": {
+        "linkSupport": true
+      },
+      "references": {},
+      "documentSymbol": {
+        "hierarchicalDocumentSymbolSupport": true
+      },
+      "formatting": {},
+      "codeAction": {}
+    },
+    "workspace": {
+      "workspaceSymbol": {},
+      "executeCommand": {},
+      "configuration": true,
+      "workspaceFolders": true
+    }
+  },
+  "initializationOptions": {
+    "dialyzerEnabled": true,
+    "fetchDeps": true,
+    "suggestSpecs": true,
+    "mixEnv": "test",
+    "mixTarget": "host"
+  },
+  "trace": "verbose",
+  "workspaceFolders": [
+    {
+      "uri": "$uri",
+      "name": "$name"
+    }
+  ]
+}
