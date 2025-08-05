@@ -397,15 +397,14 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-# Downloaded language server binaries
-src/multilspy/language_servers/*/static/
+src/multilspy/language_servers/eclipse_jdtls/static/
+src/multilspy/language_servers/gopls/static/
+src/multilspy/language_servers/omnisharp/static/
+src/multilspy/language_servers/rust_analyzer/static/
+src/multilspy/language_servers/typescript_language_server/static/
+src/multilspy/language_servers/dart_language_server/static/
+src/multilspy/language_servers/clangd_language_server/static/
 
 # Virtual Environment
 .venv/
 venv/
-
-# clojure-related temporary files
-.calva/
-.clj-kondo/
-.cpcache/
-.lsp/
