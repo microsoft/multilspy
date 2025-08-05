@@ -105,6 +105,7 @@ class LanguageServer:
             from multilspy.language_servers.typescript_language_server.typescript_language_server import (
                 TypeScriptLanguageServer,
             )
+
             return TypeScriptLanguageServer(config, logger, repository_root_path)
         elif config.code_language == Language.GO:
             from multilspy.language_servers.gopls.gopls import Gopls
@@ -194,8 +195,10 @@ class LanguageServer:
         ```
         """
         self.server_started = True
-        yield self
-        self.server_started = False
+        try:
+            yield self
+        finally:
+            self.server_started = False
 
     # TODO: Add support for more LSP features
 
@@ -221,8 +224,6 @@ class LanguageServer:
             assert self.open_file_buffers[uri].ref_count >= 1
 
             self.open_file_buffers[uri].ref_count += 1
-            yield
-            self.open_file_buffers[uri].ref_count -= 1
         else:
             contents = FileUtils.read_file(self.logger, absolute_file_path)
 
@@ -239,18 +240,20 @@ class LanguageServer:
                     }
                 }
             )
+        try:
             yield
+        finally:
             self.open_file_buffers[uri].ref_count -= 1
 
-        if self.open_file_buffers[uri].ref_count == 0:
-            self.server.notify.did_close_text_document(
-                {
-                    LSPConstants.TEXT_DOCUMENT: {
-                        LSPConstants.URI: uri,
+            if self.open_file_buffers[uri].ref_count == 0:
+                self.server.notify.did_close_text_document(
+                    {
+                        LSPConstants.TEXT_DOCUMENT: {
+                            LSPConstants.URI: uri,
+                        }
                     }
-                }
-            )
-            del self.open_file_buffers[uri]
+                )
+                del self.open_file_buffers[uri]
 
     def insert_text_at_position(
         self, relative_file_path: str, line: int, column: int, text_to_be_inserted: str
@@ -686,6 +689,7 @@ class LanguageServer:
 
         return ret
 
+
 @ensure_all_methods_implemented(LanguageServer)
 class SyncLanguageServer:
     """
@@ -771,10 +775,14 @@ class SyncLanguageServer:
         loop_thread.start()
         ctx = self.language_server.start_server()
         asyncio.run_coroutine_threadsafe(ctx.__aenter__(), loop=self.loop).result()
-        yield self
-        asyncio.run_coroutine_threadsafe(ctx.__aexit__(None, None, None), loop=self.loop).result()
-        self.loop.call_soon_threadsafe(self.loop.stop)
-        loop_thread.join()
+        try:
+            yield self
+        finally:
+            asyncio.run_coroutine_threadsafe(
+                ctx.__aexit__(None, None, None), loop=self.loop
+            ).result()
+            self.loop.call_soon_threadsafe(self.loop.stop)
+            loop_thread.join()
 
     def request_definition(self, file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
         """

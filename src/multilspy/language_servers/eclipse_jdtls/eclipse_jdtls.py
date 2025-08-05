@@ -398,8 +398,8 @@ class EclipseJDTLS(LanguageServer):
 
             # TODO: Add comments about why we wait here, and how this can be optimized
             await self.service_ready_event.wait()
-
-            yield self
-
-            await self.server.shutdown()
-            await self.server.stop()
+            try:
+                yield self
+            finally:
+                await self.server.shutdown()
+                await self.server.stop()
