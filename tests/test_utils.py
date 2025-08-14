@@ -2,6 +2,7 @@ import os
 import pathlib
 import contextlib
 import shutil
+import uuid
 
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_logger import MultilspyLogger
@@ -11,11 +12,12 @@ from uuid import uuid4
 from multilspy.multilspy_utils import FileUtils
 
 @contextlib.contextmanager
-def create_test_context(params: dict) -> Iterator[MultilspyContext]:
+def create_test_context(params: dict, temp_workspace=True) -> Iterator[MultilspyContext]:
     """
     Creates a test context for the given parameters.
     """
     config = MultilspyConfig.from_dict(params)
+    config.temp_workspace = temp_workspace
     logger = MultilspyLogger()
 
     user_home_dir = os.path.expanduser("~")
