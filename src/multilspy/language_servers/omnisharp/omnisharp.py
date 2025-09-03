@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import pathlib
+import shlex
 import stat
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Iterable
@@ -71,20 +72,20 @@ class OmniSharp(LanguageServer):
 
         cmd = " ".join(
             [
-                omnisharp_executable_path,
+                shlex.quote(omnisharp_executable_path),
                 "-lsp",
                 "--encoding",
                 "ascii",
                 "-z",
                 "-s",
-                slnfilename,
+                shlex.quote(slnfilename),
                 "--hostPID",
                 str(os.getpid()),
                 "DotNet:enablePackageRestore=false",
                 "--loglevel",
                 "trace",
                 "--plugin",
-                dll_path,
+                shlex.quote(dll_path),
                 "FileOptions:SystemExcludeSearchPatterns:0=**/.git",
                 "FileOptions:SystemExcludeSearchPatterns:1=**/.svn",
                 "FileOptions:SystemExcludeSearchPatterns:2=**/.hg",
