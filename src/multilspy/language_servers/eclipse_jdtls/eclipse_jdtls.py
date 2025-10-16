@@ -156,17 +156,18 @@ class EclipseJDTLS(LanguageServer):
         #     "win-x64",
         # ], "Only linux-x64 platform is supported for in multilspy at the moment"
 
+        gradle_version = runtimeDependencies["gradle"]["platform-agnostic"]["version"]
         gradle_path = str(
             PurePath(
                 os.path.abspath(os.path.dirname(__file__)),
-                "static/gradle-7.3.3",
+                f"static/gradle-{gradle_version}",
             )
         )
 
         if not os.path.exists(gradle_path):
             FileUtils.download_and_extract_archive(
                 logger,
-                runtimeDependencies["gradle"]["platform-agnostic"]["url"],
+                runtimeDependencies["gradle"]["platform-agnostic"]["url"].format(version=gradle_version),
                 str(PurePath(gradle_path).parent),
                 runtimeDependencies["gradle"]["platform-agnostic"]["archiveType"],
             )

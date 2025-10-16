@@ -2,7 +2,8 @@
     "_description": "This file lists the runtime dependencies for the Java Language Server",
     "gradle": {
         "platform-agnostic": {
-            "url": "https://services.gradle.org/distributions/gradle-7.6.6-bin.zip",
+            "version": "7.6.6",
+            "url": "https://services.gradle.org/distributions/gradle-{version}-bin.zip",
             "archiveType": "zip",
             "relative_extraction_path": "."
         }
