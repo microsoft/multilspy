@@ -197,6 +197,13 @@ class OmniSharp(LanguageServer):
         )
         assert os.path.exists(razor_omnisharp_dll_path)
 
+        # Override executable path if custom binary is provided
+        # Note: Only the OmniSharp executable path is replaced.
+        if config.custom_lsp_binary:
+            custom_path = os.path.abspath(config.custom_lsp_binary)
+            assert os.path.exists(custom_path)
+            omnisharp_executable_path = custom_path
+
         return omnisharp_executable_path, razor_omnisharp_dll_path
 
     @asynccontextmanager

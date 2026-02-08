@@ -61,6 +61,15 @@ class TypeScriptLanguageServer(LanguageServer):
         ] 
         assert platform_id in valid_platforms, f"Platform {platform_id} is not supported for multilspy javascript/typescript at the moment"
 
+        # Check for custom binary after platform validation
+        # Note: The '--stdio' flag is automatically appended to the custom binary path,
+        # as it's required for LSP communication. Provide the path to the
+        # typescript-language-server executable.
+        if config.custom_lsp_binary:
+            path = os.path.abspath(config.custom_lsp_binary)
+            assert os.path.exists(path)
+            return f"{path} --stdio"
+
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
             d = json.load(f)
             del d["_description"]

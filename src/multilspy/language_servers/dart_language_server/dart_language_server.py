@@ -21,7 +21,7 @@ class DartLanguageServer(LanguageServer):
         Creates a DartServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
 
-        executable_path = self.setup_runtime_dependencies(logger)
+        executable_path = self.setup_runtime_dependencies(logger, config)
         super().__init__(
             config,
             logger,
@@ -30,7 +30,20 @@ class DartLanguageServer(LanguageServer):
             "dart",
         )
 
-    def setup_runtime_dependencies(self, logger: "MultilspyLogger") -> str:
+    def setup_runtime_dependencies(self, logger: "MultilspyLogger", config: "MultilspyConfig") -> str:
+        lsp_args = [
+            "language-server",
+            "--client-id",
+            "multilspy.dart",
+            "--client-version",
+            "1.2",
+        ]
+        # Check for custom binary after platform validation
+        if config.custom_lsp_binary:
+            path = os.path.abspath(config.custom_lsp_binary)
+            assert os.path.exists(path)
+            return f"{path} {' '.join(lsp_args)}"
+        
         platform_id = PlatformUtils.get_platform_id()
 
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
@@ -58,7 +71,7 @@ class DartLanguageServer(LanguageServer):
         assert os.path.exists(dart_executable_path)
         os.chmod(dart_executable_path, stat.S_IEXEC)
 
-        return f"{dart_executable_path} language-server --client-id multilspy.dart --client-version 1.2"
+        return f"{dart_executable_path} {' '.join(lsp_args)}"
 
 
     def _get_initialize_params(self, repository_absolute_path: str):

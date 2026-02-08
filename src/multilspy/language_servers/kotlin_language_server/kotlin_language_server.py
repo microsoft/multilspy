@@ -124,6 +124,12 @@ class KotlinLanguageServer(LanguageServer):
         else:
             raise FileNotFoundError(f"Kotlin Language Server script not found at {kotlin_script}")
         
+        # Override executable path if custom binary is provided
+        if config.custom_lsp_binary:
+            custom_path = os.path.abspath(config.custom_lsp_binary)
+            assert os.path.exists(custom_path)
+            kotlin_executable_path = custom_path
+        
         return KotlinRuntimeDependencyPaths(
             java_path=java_path,
             java_home_path=java_home_path,

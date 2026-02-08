@@ -42,7 +42,7 @@ class Gopls(LanguageServer):
         return None
 
     @classmethod
-    def setup_runtime_dependency(cls):
+    def setup_runtime_dependency(cls, config: MultilspyConfig):
         """
         Check if required Go runtime dependencies are available.
         Raises RuntimeError with helpful message if dependencies are missing.
@@ -53,6 +53,9 @@ class Gopls(LanguageServer):
         go_version = cls._get_go_version()
         if not go_version:
             missing_deps.append(("Go", "https://golang.org/doc/install"))
+
+        if config.custom_lsp_binary:
+            return True
         
         # Check for gopls
         gopls_version = cls._get_gopls_version()
@@ -69,13 +72,19 @@ class Gopls(LanguageServer):
 
     def __init__(self, config: MultilspyConfig, logger: MultilspyLogger, repository_root_path: str):
         # Check runtime dependencies before initializing
-        self.setup_runtime_dependency()
+        self.setup_runtime_dependency(config)
+        
+        cmd = "gopls"
+        if config.custom_lsp_binary:
+            path = os.path.abspath(config.custom_lsp_binary)
+            assert os.path.exists(path)
+            cmd = path
         
         super().__init__(
             config,
             logger,
             repository_root_path,
-            ProcessLaunchInfo(cmd="gopls", cwd=repository_root_path),
+            ProcessLaunchInfo(cmd=cmd, cwd=repository_root_path),
             "go",
         )
         self.server_ready = asyncio.Event()

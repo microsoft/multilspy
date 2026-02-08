@@ -34,7 +34,25 @@ class MultilspyConfig:
     code_language: Language
     trace_lsp_communication: bool = False
     start_independent_lsp_process: bool = True
-    # Only works for Rust Analyzer
+
+    # Optional path to a custom LSP binary/executable to use instead of the default.
+    # 
+    # For most language servers, this simply replaces the executable path. However, there
+    # are some exceptions:
+    # 
+    # - Java (EclipseJDTLS): Replaces only the launcher jar path. All Java/JVM arguments,
+    #   runtime setup, and configuration are preserved. The custom binary should be a path
+    #   to a JDTLS launcher jar file.
+    # 
+    # - Kotlin: Replaces only the Kotlin LSP executable path. All Java setup (JAVA_HOME, etc.)
+    #   is still performed and preserved, as it's required for Kotlin to function.
+    # 
+    # - C# (OmniSharp): Replaces only the OmniSharp executable path. All setup including
+    #   RazorOmnisharp DLL download is still performed, and the DLL path is still available
+    #   if needed by the custom binary.
+    # 
+    # For all other language servers (Rust, Python, Go, Ruby, C++), the custom binary
+    # path directly replaces the default executable with no other modifications.
     custom_lsp_binary: Optional[str] = None
 
     @classmethod

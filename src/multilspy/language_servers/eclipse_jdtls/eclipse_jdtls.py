@@ -51,7 +51,7 @@ class EclipseJDTLS(LanguageServer):
         Creates a new EclipseJDTLS instance initializing the language server settings appropriately.
         This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
-
+        
         runtime_dependency_paths = self.setupRuntimeDependencies(logger, config)
         self.runtime_dependency_paths = runtime_dependency_paths
 
@@ -97,6 +97,14 @@ class EclipseJDTLS(LanguageServer):
         # TODO: Add "self.runtime_dependency_paths.jre_home_path"/bin to $PATH as well
         proc_env = {"syntaxserver": "false", "JAVA_HOME": self.runtime_dependency_paths.jre_home_path}
         proc_cwd = repository_root_path
+        
+        # Override JDTLS launcher jar path if custom "binary" is provided
+        launcher_jar = jdtls_launcher_jar
+        if config.custom_lsp_binary:
+            custom_path = os.path.abspath(config.custom_lsp_binary)
+            assert os.path.exists(custom_path)
+            launcher_jar = custom_path
+        
         cmd = " ".join(
             [
                 jre_path,
@@ -125,7 +133,7 @@ class EclipseJDTLS(LanguageServer):
                 f"-javaagent:{lombok_jar_path}",
                 f"-Djdt.core.sharedIndexLocation={shared_cache_location}",
                 "-jar",
-                jdtls_launcher_jar,
+                launcher_jar,
                 "-configuration",
                 jdtls_config_path,
                 "-data",

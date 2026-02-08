@@ -57,6 +57,12 @@ class ClangdLanguageServer(LanguageServer):
             "osx-arm64",
         ], "Unsupported platform: " + platform_id.value
 
+        # Check for custom binary after platform validation
+        if config.custom_lsp_binary:
+            path = os.path.abspath(config.custom_lsp_binary)
+            assert os.path.exists(path)
+            return path
+
         runtime_dependencies = d["runtimeDependencies"]
         runtime_dependencies = [
             dependency for dependency in runtime_dependencies if dependency["platformId"] == platform_id.value
