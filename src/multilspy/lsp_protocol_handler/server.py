@@ -320,18 +320,12 @@ class LanguageServerHandler:
     
         # If we have the parent process and it's running, signal the entire tree
         if parent and parent.is_running():
-            # Signal children first - wrap in try-except to handle race conditions
-            # where children exit between getting the list and signaling them
-            try:
-                children = parent.children(recursive=True)
-                for child in children:
-                    try:
-                        getattr(child, signal_method)()
-                    except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
-                        pass
-            except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
-                # Parent or children may have exited during iteration
-                pass
+            # Signal children first
+            for child in parent.children(recursive=True):
+                try:
+                    getattr(child, signal_method)()
+                except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
+                    pass
         
             # Then signal the parent
             try:

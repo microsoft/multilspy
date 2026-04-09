@@ -1,6 +1,5 @@
 name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
 
-
 on:
   push:
     branches:
@@ -15,62 +14,28 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-        cache: "pip"
-
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.21'
-
     - name: Install gopls
       run: go install golang.org/x/tools/gopls@latest
-
-    - name: Set up Ruby
+    - name: Install ruby
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: '3.4'
-
-    - name: Install Solargraph
-      run: gem install solargraph
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        node-version: '20'
-
-    - name: Set up Rust
-      uses: dtolnay/rust-toolchain@stable
-
-    - name: Set up Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Remove problematic JDK installations
-      run: |
-        sudo rm -rf /usr/lib/jvm/temurin-8-jdk-amd64 || true
-        sudo rm -rf /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64 || true
-
-    - name: Set up .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-
+        python-version: "3.x"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install -e .
-
-    - name: Run all tests
+    - name: Test with pytest
       run: |
-        pytest tests/multilspy -v --tb=short
+        pip install pytest
+        pytest tests/multilspy
 
   build:
     name: Build the distribution
@@ -101,14 +66,13 @@ jobs:
   publish-to-pypi:
     name: >-
       Publish Python 🐍 distribution 📦 to PyPI
-    # Only publish on tag pushes AND only on the original repo (not forks)
-    if: startsWith(github.ref, 'refs/tags/') && github.repository == 'microsoft/multilspy'
+    if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
     needs:
     - build
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/multilspy
+      url: https://pypi.org/p/multilspy  # Replace <package-name> with your PyPI project name
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
 
@@ -128,8 +92,6 @@ jobs:
     name: >-
       Sign the Python 🐍 distribution 📦 with Sigstore
       and upload them to GitHub Release
-    # Only run on the original repo (not forks)
-    if: github.repository == 'microsoft/multilspy'
     needs:
     - publish-to-pypi
     runs-on: ubuntu-latest
@@ -171,8 +133,6 @@ jobs:
 
   publish-to-testpypi:
     name: Publish Python 🐍 distribution 📦 to TestPyPI
-    # Only run on the original repo (not forks)
-    if: github.repository == 'microsoft/multilspy'
     needs:
     - build
     runs-on: ubuntu-latest

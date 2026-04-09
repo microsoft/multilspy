@@ -88,8 +88,8 @@ def test_multilspy_ruby_rubyland() -> None:
 
             assert isinstance(result, tuple)
             assert len(result) == 2
-            symbol_names = set(map(lambda x: x["name"], result[0]))
-            assert symbol_names == {'ApplicationController', 'protected_demo_authentication'}
+            symbol_names = list(map(lambda x: x["name"], result[0]))
+            assert symbol_names == ['ApplicationController', 'protected_demo_authentication']
 
             result = lsp.request_definition(str(PurePath("app/controllers/feed_controller.rb")), 11, 23)
 

@@ -3,7 +3,6 @@ This file contains tests for running the Python Language Server: jedi-language-s
 """
 
 import pytest
-import concurrent.futures
 from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import Language
 from tests.test_utils import create_test_context
@@ -31,6 +30,5 @@ def test_multilspy_timeout() -> None:
         lsp.language_server.request_definition = request_definition
 
         with lsp.start_server():
-            # In Python < 3.11, concurrent.futures.TimeoutError is different from built-in TimeoutError
-            with pytest.raises((TimeoutError, concurrent.futures.TimeoutError)):
+            with pytest.raises(TimeoutError):
                 lsp.request_definition(str(PurePath("src/black/mode.py")), 163, 4)
