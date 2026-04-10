@@ -65,7 +65,6 @@ def test_sync_multilspy_javascript_violentmonkey_cross_file() -> None:
         # The server process is started when the context manager is entered and is terminated when the context manager is exited.
         with lsp.start_server():
             result = lsp.request_definition("src/common/util.js", 335, 55)
-            print("Definition", result)
             assert isinstance(result, list)
             assert len(result) == 1
 
@@ -77,7 +76,6 @@ def test_sync_multilspy_javascript_violentmonkey_cross_file() -> None:
             }
 
             result = lsp.request_references("src/common/consts.js", 46, 13)
-            print("References", result)
             assert isinstance(result, list)
             assert len(result) == 10
 
