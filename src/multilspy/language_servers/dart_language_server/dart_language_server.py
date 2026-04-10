@@ -8,6 +8,8 @@ from typing import AsyncIterator
 from multilspy.language_server import LanguageServer
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 import json
+from multilspy.multilspy_config import MultilspyConfig
+from multilspy.multilspy_settings import MultilspySettings
 from multilspy.multilspy_utils import FileUtils, PlatformUtils
 
 
@@ -21,7 +23,7 @@ class DartLanguageServer(LanguageServer):
         Creates a DartServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
 
-        executable_path = self.setup_runtime_dependencies(logger)
+        executable_path = self.setup_runtime_dependencies(logger, config)
         super().__init__(
             config,
             logger,
@@ -30,7 +32,11 @@ class DartLanguageServer(LanguageServer):
             "dart",
         )
 
-    def setup_runtime_dependencies(self, logger: "MultilspyLogger") -> str:
+    def setup_runtime_dependencies(self, logger: "MultilspyLogger", config: MultilspyConfig) -> str:
+        if config.server_binary:
+            assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
+            return f"{config.server_binary} language-server --client-id multilspy.dart --client-version 1.2"
+
         platform_id = PlatformUtils.get_platform_id()
 
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
@@ -45,7 +51,7 @@ class DartLanguageServer(LanguageServer):
         assert len(runtime_dependencies) == 1
         dependency = runtime_dependencies[0]
 
-        dart_ls_dir = os.path.join(os.path.dirname(__file__), "static", "dart-language-server")
+        dart_ls_dir = config.server_install_dir or MultilspySettings.get_server_install_directory("dart-language-server")
         dart_executable_path = os.path.join(dart_ls_dir, dependency["binaryName"])
 
         if not os.path.exists(dart_executable_path):

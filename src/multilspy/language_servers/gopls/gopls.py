@@ -68,14 +68,19 @@ class Gopls(LanguageServer):
         return True
 
     def __init__(self, config: MultilspyConfig, logger: MultilspyLogger, repository_root_path: str):
-        # Check runtime dependencies before initializing
-        self.setup_runtime_dependency()
-        
+        if config.server_binary:
+            assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
+            cmd = config.server_binary
+        else:
+            # Check runtime dependencies before initializing
+            self.setup_runtime_dependency()
+            cmd = "gopls"
+
         super().__init__(
             config,
             logger,
             repository_root_path,
-            ProcessLaunchInfo(cmd="gopls", cwd=repository_root_path),
+            ProcessLaunchInfo(cmd=cmd, cwd=repository_root_path),
             "go",
         )
         self.server_ready = asyncio.Event()

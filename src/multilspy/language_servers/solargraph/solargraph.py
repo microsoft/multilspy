@@ -47,6 +47,9 @@ class Solargraph(LanguageServer):
         """
         Setup runtime dependencies for Solargraph.
         """
+        if config.server_binary:
+            assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
+            return config.server_binary
 
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
             d = json.load(f)

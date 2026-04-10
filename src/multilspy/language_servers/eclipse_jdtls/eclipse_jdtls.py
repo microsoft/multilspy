@@ -149,17 +149,13 @@ class EclipseJDTLS(LanguageServer):
             runtimeDependencies = json.load(f)
             del runtimeDependencies["_description"]
 
-        os.makedirs(str(PurePath(os.path.abspath(os.path.dirname(__file__)), "static")), exist_ok=True)
-
-        # assert platformId.value in [
-        #     "linux-x64",
-        #     "win-x64",
-        # ], "Only linux-x64 platform is supported for in multilspy at the moment"
+        static_dir = config.server_install_dir or MultilspySettings.get_server_install_directory("EclipseJDTLS")
+        os.makedirs(static_dir, exist_ok=True)
 
         gradle_path = str(
             PurePath(
-                os.path.abspath(os.path.dirname(__file__)),
-                "static/gradle-7.3.3",
+                static_dir,
+                "gradle-7.3.3",
             )
         )
 
@@ -175,7 +171,7 @@ class EclipseJDTLS(LanguageServer):
 
         dependency = runtimeDependencies["vscode-java"][platformId.value]
         vscode_java_path = str(
-            PurePath(os.path.abspath(os.path.dirname(__file__)), "static", dependency["relative_extraction_path"])
+            PurePath(static_dir, dependency["relative_extraction_path"])
         )
         os.makedirs(vscode_java_path, exist_ok=True)
         jre_home_path = str(PurePath(vscode_java_path, dependency["jre_home_path"]))
@@ -208,7 +204,7 @@ class EclipseJDTLS(LanguageServer):
 
         dependency = runtimeDependencies["intellicode"]["platform-agnostic"]
         intellicode_directory_path = str(
-            PurePath(os.path.abspath(os.path.dirname(__file__)), "static", dependency["relative_extraction_path"])
+            PurePath(static_dir, dependency["relative_extraction_path"])
         )
         os.makedirs(intellicode_directory_path, exist_ok=True)
         intellicode_jar_path = str(PurePath(intellicode_directory_path, dependency["intellicode_jar_path"]))

@@ -29,7 +29,7 @@ class JediServer(LanguageServer):
             config,
             logger,
             repository_root_path,
-            ProcessLaunchInfo(cmd="jedi-language-server", cwd=repository_root_path),
+            ProcessLaunchInfo(cmd=config.server_binary or "jedi-language-server", cwd=repository_root_path),
             "python",
         )
 
