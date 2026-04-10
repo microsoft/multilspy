@@ -409,5 +409,4 @@ src/multilspy/language_servers/clangd_language_server/static/
 .venv/
 venv/
 
-
-static/
+src/multilspy/language_servers/intelephense/static/

@@ -1,5 +1,5 @@
 {
-    "_description": "Used to download the runtime dependencies for running Phpactor Language Server, downloaded from https://phpactor.readthedocs.io/",
+    "_description": "Used to download the runtime dependencies for running Intelephense PHP Language Server",
     "runtimeDependencies": [
         {
             "id": "intelephense",
