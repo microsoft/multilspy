@@ -44,7 +44,7 @@ class Intelephense(LanguageServer):
     def setup_runtime_dependencies(self, logger, config: MultilspyConfig) -> str:
         if config.server_binary:
             assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
-            return f"{config.server_binary} --stdio"
+            return [config.server_binary, "--stdio"]
 
         with open(
             os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r"
@@ -97,7 +97,7 @@ class Intelephense(LanguageServer):
             | stat.S_IXOTH,
         )
 
-        return f"{intelephense_executable_path} --stdio"
+        return [intelephense_executable_path, "--stdio"]
 
     def _get_initialize_params(self, repository_absolute_path: str):
         """

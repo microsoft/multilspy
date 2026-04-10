@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import pathlib
-import shlex
+
 import stat
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Iterable
@@ -71,22 +71,21 @@ class OmniSharp(LanguageServer):
             logger.log("No *.sln file found in repository", logging.ERROR)
             raise MultilspyException("No SLN file found in repository")
 
-        cmd = " ".join(
-            [
-                shlex.quote(omnisharp_executable_path),
+        cmd = [
+                omnisharp_executable_path,
                 "-lsp",
                 "--encoding",
                 "ascii",
                 "-z",
                 "-s",
-                shlex.quote(slnfilename),
+                slnfilename,
                 "--hostPID",
                 str(os.getpid()),
                 "DotNet:enablePackageRestore=false",
                 "--loglevel",
                 "trace",
                 "--plugin",
-                shlex.quote(dll_path),
+                dll_path,
                 "FileOptions:SystemExcludeSearchPatterns:0=**/.git",
                 "FileOptions:SystemExcludeSearchPatterns:1=**/.svn",
                 "FileOptions:SystemExcludeSearchPatterns:2=**/.hg",
@@ -102,7 +101,6 @@ class OmniSharp(LanguageServer):
                 "formattingOptions:tabSize=4",
                 "formattingOptions:indentationSize=4",
             ]
-        )
         super().__init__(
             config, logger, repository_root_path, ProcessLaunchInfo(cmd=cmd, cwd=repository_root_path), "csharp"
         )

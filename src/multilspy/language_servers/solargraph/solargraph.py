@@ -38,7 +38,7 @@ class Solargraph(LanguageServer):
             config,
             logger,
             repository_root_path,
-            ProcessLaunchInfo(cmd=f"{solargraph_executable_path} stdio", cwd=repository_root_path),
+            ProcessLaunchInfo(cmd=[solargraph_executable_path, "stdio"], cwd=repository_root_path),
             "ruby",
         )
         self.server_ready = asyncio.Event()
