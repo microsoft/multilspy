@@ -1,0 +1,13 @@
+{
+    "_description": "This file contains the initialization parameters for the Intelephense PHP Language Server.",
+    "processId": "$processId",
+    "rootPath": "$rootPath",
+    "rootUri": "$rootUri",
+    "capabilities": {},
+    "workspaceFolders": [
+        {
+            "uri": "$uri",
+            "name": "$name"
+        }
+    ]
+}
