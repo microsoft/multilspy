@@ -239,13 +239,9 @@ async def test_multilspy_php_multiple_references():
 
         async with lsp.start_server():
             result = await lsp.request_references(
-                file_path=str(PurePath("src/DeepCopy/DeepCopy.php")),
-                line=27,
-                column=8,
+                str(PurePath("src/DeepCopy/DeepCopy.php")),
+                27,
+                8,
             )
 
-            """
-            This should be greater than 0 but the language server is not finding
-            the references for some reason.
-            """
             assert len(result) > 0
