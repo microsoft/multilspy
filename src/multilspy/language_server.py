@@ -1,6 +1,6 @@
 """
-This file contains the main interface and the public API for multilspy.
-The abstract class LanguageServer provides a factory method, creator that is
+This file contains the main interface and the public API for multilspy. 
+The abstract class LanguageServer provides a factory method, creator that is 
 intended for creating instantiations of language specific clients.
 The details of Language Specific configuration are not exposed to the user.
 """
@@ -131,6 +131,7 @@ class LanguageServer:
             from multilspy.language_servers.elixir_language_server.elixir_language_server import ElixirLanguageServer
 
             return ElixirLanguageServer(config, logger, repository_root_path)
+
         else:
             logger.log(f"Language {config.code_language} is not supported", logging.ERROR)
             raise MultilspyException(f"Language {config.code_language} is not supported")
@@ -267,7 +268,7 @@ class LanguageServer:
         self, relative_file_path: str, line: int, column: int, text_to_be_inserted: str
     ) -> multilspy_types.Position:
         """
-        Insert text at the given line and column in the given file and return
+        Insert text at the given line and column in the given file and return 
         the updated cursor position after inserting the text.
 
         :param relative_file_path: The relative path of the file to open.
@@ -411,8 +412,6 @@ class LanguageServer:
                     },
                 }
             )
-
-
 
         ret: List[multilspy_types.Location] = []
         if isinstance(response, list):
@@ -559,7 +558,7 @@ class LanguageServer:
                 completion_item = {}
                 if "detail" in item:
                     completion_item["detail"] = item["detail"]
-
+                
                 if "label" in item:
                     completion_item["completionText"] = item["label"]
                     completion_item["kind"] = item["kind"]
@@ -583,7 +582,7 @@ class LanguageServer:
                             == item["textEdit"]["range"]["end"]["character"],
                         )
                     )
-
+                    
                     completion_item["completionText"] = item["textEdit"]["newText"]
                     completion_item["kind"] = item["kind"]
                 elif "textEdit" in item and "insert" in item["textEdit"]:
@@ -616,7 +615,7 @@ class LanguageServer:
                     }
                 }
             )
-
+        
         ret: List[multilspy_types.UnifiedSymbolInformation] = []
         l_tree = None
         assert isinstance(response, list), f"Unexpected response from Language Server: {response}"
@@ -627,7 +626,7 @@ class LanguageServer:
 
             if LSPConstants.CHILDREN in item:
                 # TODO: l_tree should be a list of TreeRepr. Define the following function to return TreeRepr as well
-
+                
                 def visit_tree_nodes_and_build_tree_repr(tree: LSPTypes.DocumentSymbol) -> List[multilspy_types.UnifiedSymbolInformation]:
                     l: List[multilspy_types.UnifiedSymbolInformation] = []
                     children = tree['children'] if 'children' in tree else []
@@ -637,13 +636,13 @@ class LanguageServer:
                     for child in children:
                         l.extend(visit_tree_nodes_and_build_tree_repr(child))
                     return l
-
+                
                 ret.extend(visit_tree_nodes_and_build_tree_repr(item))
             else:
                 ret.append(multilspy_types.UnifiedSymbolInformation(**item))
 
         return ret, l_tree
-
+    
     async def request_hover(self, relative_file_path: str, line: int, column: int) -> Union[multilspy_types.Hover, None]:
         """
         Raise a [textDocument/hover](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover) request to the Language Server
@@ -667,7 +666,7 @@ class LanguageServer:
                     },
                 }
             )
-
+        
         if response is None:
             return None
 
@@ -747,7 +746,7 @@ class SyncLanguageServer:
         self, relative_file_path: str, line: int, column: int, text_to_be_inserted: str
     ) -> multilspy_types.Position:
         """
-        Insert text at the given line and column in the given file and return
+        Insert text at the given line and column in the given file and return 
         the updated cursor position after inserting the text.
 
         :param relative_file_path: The relative path of the file to open.
@@ -775,7 +774,7 @@ class SyncLanguageServer:
         :param relative_file_path: The relative path of the file to open.
         """
         return self.language_server.get_open_file_text(relative_file_path)
-
+   
     @contextmanager
     def start_server(self) -> Iterator["SyncLanguageServer"]:
         """
