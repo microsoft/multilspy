@@ -276,10 +276,10 @@ class EclipseJDTLS(LanguageServer):
         d["initializationOptions"]["bundles"] = bundles
 
         assert d["initializationOptions"]["settings"]["java"]["configuration"]["runtimes"] == [
-            {"name": "JavaSE-17", "path": "static/vscode-java/extension/jre/17.0.8.1-linux-x86_64", "default": True}
+            {"name": "JavaSE-21", "path": "static/vscode-java/extension/jre/17.0.8.1-linux-x86_64", "default": True}
         ]
         d["initializationOptions"]["settings"]["java"]["configuration"]["runtimes"] = [
-            {"name": "JavaSE-17", "path": self.runtime_dependency_paths.jre_home_path, "default": True}
+            {"name": "JavaSE-21", "path": self.runtime_dependency_paths.jre_home_path, "default": True}
         ]
 
         for runtime in d["initializationOptions"]["settings"]["java"]["configuration"]["runtimes"]:
