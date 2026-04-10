@@ -19,6 +19,7 @@ from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_utils import FileUtils
 from multilspy.multilspy_utils import PlatformUtils
+from multilspy.multilspy_settings import MultilspySettings
 
 
 @dataclasses.dataclass
@@ -75,7 +76,7 @@ class KotlinLanguageServer(LanguageServer):
         java_dependency = d["java"][platform_id.value]
 
         # Setup paths for dependencies
-        static_dir = os.path.join(os.path.dirname(__file__), "static")
+        static_dir = config.server_install_dir or MultilspySettings.get_server_install_directory("KotlinLanguageServer")
         os.makedirs(static_dir, exist_ok=True)
         
         # Setup Java paths

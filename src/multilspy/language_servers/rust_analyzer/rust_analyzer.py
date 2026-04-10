@@ -18,6 +18,7 @@ from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_utils import FileUtils
 from multilspy.multilspy_utils import PlatformUtils
+from multilspy.multilspy_settings import MultilspySettings
 
 
 class RustAnalyzer(LanguageServer):
@@ -43,16 +44,15 @@ class RustAnalyzer(LanguageServer):
         """
         Setup runtime dependencies for rust_analyzer.
         """
+        if config.server_binary:
+            assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
+            return config.server_binary
+
         platform_id = PlatformUtils.get_platform_id()
 
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
             d = json.load(f)
             del d["_description"]
-
-        # assert platform_id.value in [
-        #     "linux-x64",
-        #     "win-x64",
-        # ], "Only linux-x64 and win-x64 platform is supported for in multilspy at the moment"
 
         runtime_dependencies = d["runtimeDependencies"]
         runtime_dependencies = [
@@ -61,7 +61,7 @@ class RustAnalyzer(LanguageServer):
         assert len(runtime_dependencies) == 1
         dependency = runtime_dependencies[0]
 
-        rustanalyzer_ls_dir = os.path.join(os.path.dirname(__file__), "static", "RustAnalyzer")
+        rustanalyzer_ls_dir = config.server_install_dir or MultilspySettings.get_server_install_directory("RustAnalyzer")
         rustanalyzer_executable_path = os.path.join(rustanalyzer_ls_dir, dependency["binaryName"])
         if not os.path.exists(rustanalyzer_executable_path):
             os.makedirs(rustanalyzer_ls_dir, exist_ok=True)

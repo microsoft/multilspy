@@ -18,6 +18,7 @@ from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
 from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_utils import PlatformUtils, PlatformId
+from multilspy.multilspy_settings import MultilspySettings
 
 
 # Conditionally import pwd module (Unix-only)
@@ -48,17 +49,21 @@ class TypeScriptLanguageServer(LanguageServer):
         """
         Setup runtime dependencies for TypeScript Language Server.
         """
+        if config.server_binary:
+            assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
+            return f"{config.server_binary} --stdio"
+
         platform_id = PlatformUtils.get_platform_id()
 
         valid_platforms = [
-            PlatformId.LINUX_x64, 
+            PlatformId.LINUX_x64,
             PlatformId.LINUX_arm64,
-            PlatformId.OSX, 
+            PlatformId.OSX,
             PlatformId.OSX_x64,
             PlatformId.OSX_arm64,
-            PlatformId.WIN_x64, 
-            PlatformId.WIN_arm64, 
-        ] 
+            PlatformId.WIN_x64,
+            PlatformId.WIN_arm64,
+        ]
         assert platform_id in valid_platforms, f"Platform {platform_id} is not supported for multilspy javascript/typescript at the moment"
 
         with open(os.path.join(os.path.dirname(__file__), "runtime_dependencies.json"), "r") as f:
@@ -66,8 +71,8 @@ class TypeScriptLanguageServer(LanguageServer):
             del d["_description"]
 
         runtime_dependencies = d.get("runtimeDependencies", [])
-        tsserver_ls_dir = os.path.join(os.path.dirname(__file__), "static", "ts-lsp")
-        tsserver_executable_path = os.path.join(tsserver_ls_dir, "typescript-language-server")
+        tsserver_ls_dir = config.server_install_dir or MultilspySettings.get_server_install_directory("ts-lsp")
+        tsserver_executable_path = os.path.join(tsserver_ls_dir, "node_modules", ".bin", "typescript-language-server")
 
         # Verify both node and npm are installed
         is_node_installed = shutil.which('node') is not None
@@ -76,16 +81,15 @@ class TypeScriptLanguageServer(LanguageServer):
         assert is_npm_installed, "npm is not installed or isn't in PATH. Please install npm and try again."
 
         # Install typescript and typescript-language-server if not already installed
-        tsserver_executable_path = os.path.join(tsserver_ls_dir, "node_modules", ".bin", "typescript-language-server")
         if not os.path.exists(tsserver_executable_path):
             os.makedirs(tsserver_ls_dir, exist_ok=True)
             for dependency in runtime_dependencies:
                 # Windows doesn't support the 'user' parameter and doesn't have pwd module
                 if PlatformUtils.get_platform_id().value.startswith("win"):
                     subprocess.run(
-                        dependency["command"], 
-                        shell=True, 
-                        check=True, 
+                        dependency["command"],
+                        shell=True,
+                        check=True,
                         cwd=tsserver_ls_dir,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL
@@ -94,15 +98,15 @@ class TypeScriptLanguageServer(LanguageServer):
                     # On Unix-like systems, run as non-root user
                     user = pwd.getpwuid(os.getuid()).pw_name
                     subprocess.run(
-                        dependency["command"], 
-                        shell=True, 
-                        check=True, 
-                        user=user, 
+                        dependency["command"],
+                        shell=True,
+                        check=True,
+                        user=user,
                         cwd=tsserver_ls_dir,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL
                     )
-        
+
         assert os.path.exists(tsserver_executable_path), "typescript-language-server executable not found. Please install typescript-language-server and try again."
         return f"{tsserver_executable_path} --stdio"
 

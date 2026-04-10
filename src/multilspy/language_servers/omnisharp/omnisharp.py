@@ -19,6 +19,7 @@ from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_exceptions import MultilspyException
 from multilspy.multilspy_utils import FileUtils, PlatformUtils, PlatformId, DotnetVersion
+from multilspy.multilspy_settings import MultilspySettings
 
 
 def breadth_first_file_scan(root) -> Iterable[str]:
@@ -137,6 +138,10 @@ class OmniSharp(LanguageServer):
         """
         Setup runtime dependencies for OmniSharp.
         """
+        if config.server_binary:
+            assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
+            return config.server_binary, ""
+
         platform_id = PlatformUtils.get_platform_id()
         dotnet_version = PlatformUtils.get_dotnet_version()
 
@@ -177,7 +182,8 @@ class OmniSharp(LanguageServer):
         assert "OmniSharp" in runtime_dependencies
         assert "RazorOmnisharp" in runtime_dependencies
 
-        omnisharp_ls_dir = os.path.join(os.path.dirname(__file__), "static", "OmniSharp")
+        base_install_dir = config.server_install_dir or MultilspySettings.get_server_install_directory("OmniSharp")
+        omnisharp_ls_dir = os.path.join(base_install_dir, "OmniSharp")
         omnisharp_executable_path = os.path.join(omnisharp_ls_dir, runtime_dependencies["OmniSharp"]["binaryName"])
         if not os.path.exists(omnisharp_executable_path):
             os.makedirs(omnisharp_ls_dir, exist_ok=True)
@@ -187,7 +193,7 @@ class OmniSharp(LanguageServer):
         assert os.path.exists(omnisharp_executable_path)
         os.chmod(omnisharp_executable_path, stat.S_IEXEC)
 
-        razor_omnisharp_ls_dir = os.path.join(os.path.dirname(__file__), "static", "RazorOmnisharp")
+        razor_omnisharp_ls_dir = os.path.join(base_install_dir, "RazorOmnisharp")
         razor_omnisharp_dll_path = os.path.join(
             razor_omnisharp_ls_dir, runtime_dependencies["RazorOmnisharp"]["dll_path"]
         )

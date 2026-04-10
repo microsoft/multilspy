@@ -19,6 +19,14 @@ class MultilspySettings:
         return lsp_dir
 
     @staticmethod
+    def get_server_install_directory(server_name: str) -> str:
+        """Returns the install directory for a specific language server"""
+        lsp_dir = MultilspySettings.get_language_server_directory()
+        server_dir = str(pathlib.PurePath(lsp_dir, server_name))
+        os.makedirs(server_dir, exist_ok=True)
+        return server_dir
+
+    @staticmethod
     def get_global_cache_directory() -> str:
         """Returns the cache directory"""
         global_cache_dir = os.path.join(str(pathlib.Path.home()), ".multilspy", "global_cache")
