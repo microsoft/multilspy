@@ -152,17 +152,18 @@ class EclipseJDTLS(LanguageServer):
         static_dir = config.server_install_dir or MultilspySettings.get_server_install_directory("EclipseJDTLS")
         os.makedirs(static_dir, exist_ok=True)
 
+        gradle_version = runtimeDependencies["gradle"]["platform-agnostic"]["version"]
         gradle_path = str(
             PurePath(
                 static_dir,
-                "gradle-7.3.3",
+                f"gradle-{gradle_version}",
             )
         )
 
         if not os.path.exists(gradle_path):
             FileUtils.download_and_extract_archive(
                 logger,
-                runtimeDependencies["gradle"]["platform-agnostic"]["url"],
+                runtimeDependencies["gradle"]["platform-agnostic"]["url"].format(version=gradle_version),
                 str(PurePath(gradle_path).parent),
                 runtimeDependencies["gradle"]["platform-agnostic"]["archiveType"],
             )
@@ -276,10 +277,10 @@ class EclipseJDTLS(LanguageServer):
         d["initializationOptions"]["bundles"] = bundles
 
         assert d["initializationOptions"]["settings"]["java"]["configuration"]["runtimes"] == [
-            {"name": "JavaSE-17", "path": "static/vscode-java/extension/jre/17.0.8.1-linux-x86_64", "default": True}
+            {"name": "JavaSE-21", "path": "static/vscode-java/extension/jre/21.0.8-linux-x86_64", "default": True}
         ]
         d["initializationOptions"]["settings"]["java"]["configuration"]["runtimes"] = [
-            {"name": "JavaSE-17", "path": self.runtime_dependency_paths.jre_home_path, "default": True}
+            {"name": "JavaSE-21", "path": self.runtime_dependency_paths.jre_home_path, "default": True}
         ]
 
         for runtime in d["initializationOptions"]["settings"]["java"]["configuration"]["runtimes"]:
@@ -289,7 +290,7 @@ class EclipseJDTLS(LanguageServer):
                 runtime["path"]
             ), f"Runtime required for eclipse_jdtls at path {runtime['path']} does not exist"
 
-        assert d["initializationOptions"]["settings"]["java"]["import"]["gradle"]["home"] == "abs(static/gradle-7.3.3)"
+        assert d["initializationOptions"]["settings"]["java"]["import"]["gradle"]["home"] == "abs(static/gradle-7.6.6)"
         d["initializationOptions"]["settings"]["java"]["import"]["gradle"][
             "home"
         ] = self.runtime_dependency_paths.gradle_path
