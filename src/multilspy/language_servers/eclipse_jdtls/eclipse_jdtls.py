@@ -97,8 +97,7 @@ class EclipseJDTLS(LanguageServer):
         # TODO: Add "self.runtime_dependency_paths.jre_home_path"/bin to $PATH as well
         proc_env = {"syntaxserver": "false", "JAVA_HOME": self.runtime_dependency_paths.jre_home_path}
         proc_cwd = repository_root_path
-        cmd = " ".join(
-            [
+        cmd = [
                 jre_path,
                 "--add-modules=ALL-SYSTEM",
                 "--add-opens",
@@ -131,7 +130,6 @@ class EclipseJDTLS(LanguageServer):
                 "-data",
                 data_dir,
             ]
-        )
 
         self.service_ready_event = asyncio.Event()
         self.intellicode_enable_command_available = asyncio.Event()
@@ -318,20 +316,11 @@ class EclipseJDTLS(LanguageServer):
         """
 
         async def register_capability_handler(params):
-            assert "registrations" in params
-            for registration in params["registrations"]:
+            for registration in params.get("registrations", []):
                 if registration["method"] == "textDocument/completion":
-                    assert registration["registerOptions"]["resolveProvider"] == True
-                    assert registration["registerOptions"]["triggerCharacters"] == [
-                        ".",
-                        "@",
-                        "#",
-                        "*",
-                        " ",
-                    ]
                     self.completions_available.set()
                 if registration["method"] == "workspace/executeCommand":
-                    if "java.intellicode.enable" in registration["registerOptions"]["commands"]:
+                    if "java.intellicode.enable" in registration.get("registerOptions", {}).get("commands", []):
                         self.intellicode_enable_command_available.set()
             return
 
@@ -343,8 +332,6 @@ class EclipseJDTLS(LanguageServer):
                 self.service_ready_event.set()
 
         async def execute_client_command_handler(params):
-            assert params["command"] == "_java.reloadBundles.command"
-            assert params["arguments"] == []
             return []
 
         async def window_log_message(msg):
@@ -372,8 +359,11 @@ class EclipseJDTLS(LanguageServer):
             )
             init_response = await self.server.send.initialize(initialize_params)
             assert init_response["capabilities"]["textDocumentSync"]["change"] == 2
-            assert "completionProvider" not in init_response["capabilities"]
-            assert "executeCommandProvider" not in init_response["capabilities"]
+
+            # If completionProvider is already in init response (newer JDTLS),
+            # completions are statically registered and available immediately
+            if "completionProvider" in init_response["capabilities"]:
+                self.completions_available.set()
 
             self.server.notify.initialized({})
 
@@ -381,20 +371,34 @@ class EclipseJDTLS(LanguageServer):
                 {"settings": initialize_params["initializationOptions"]["settings"]}
             )
 
-            await self.intellicode_enable_command_available.wait()
+            # Wait for dynamic capability registration and enable IntelliCode if available.
+            # Newer JDTLS versions (>= 1.40) may not use dynamic registration for
+            # executeCommand, so IntelliCode enabling is best-effort.
+            try:
+                await asyncio.wait_for(self.intellicode_enable_command_available.wait(), timeout=30)
+                java_intellisense_members_path = self.runtime_dependency_paths.intellisense_members_path
+                if os.path.exists(java_intellisense_members_path):
+                    await self.server.send.execute_command(
+                        {
+                            "command": "java.intellicode.enable",
+                            "arguments": [True, java_intellisense_members_path],
+                        }
+                    )
+            except asyncio.TimeoutError:
+                self.logger.log(
+                    "IntelliCode dynamic registration not received, proceeding without IntelliCode",
+                    logging.WARNING,
+                )
 
-            java_intellisense_members_path = self.runtime_dependency_paths.intellisense_members_path
-            assert os.path.exists(java_intellisense_members_path)
-            intellicode_enable_result = await self.server.send.execute_command(
-                {
-                    "command": "java.intellicode.enable",
-                    "arguments": [True, java_intellisense_members_path],
-                }
-            )
-            assert intellicode_enable_result
-
-            # TODO: Add comments about why we wait here, and how this can be optimized
-            await self.service_ready_event.wait()
+            # Wait for service ready, or proceed after timeout (completions may
+            # already be available via static registration in newer JDTLS versions)
+            try:
+                await asyncio.wait_for(self.service_ready_event.wait(), timeout=60)
+            except asyncio.TimeoutError:
+                self.logger.log(
+                    "ServiceReady notification not received, proceeding anyway",
+                    logging.WARNING,
+                )
             try:
                 yield self
             finally:

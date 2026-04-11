@@ -35,7 +35,7 @@ class DartLanguageServer(LanguageServer):
     def setup_runtime_dependencies(self, logger: "MultilspyLogger", config: MultilspyConfig) -> str:
         if config.server_binary:
             assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
-            return f"{config.server_binary} language-server --client-id multilspy.dart --client-version 1.2"
+            return [config.server_binary, "language-server", "--client-id", "multilspy.dart", "--client-version", "1.2"]
 
         platform_id = PlatformUtils.get_platform_id()
 
@@ -64,7 +64,7 @@ class DartLanguageServer(LanguageServer):
         assert os.path.exists(dart_executable_path)
         os.chmod(dart_executable_path, stat.S_IEXEC)
 
-        return f"{dart_executable_path} language-server --client-id multilspy.dart --client-version 1.2"
+        return [dart_executable_path, "language-server", "--client-id", "multilspy.dart", "--client-version", "1.2"]
 
 
     def _get_initialize_params(self, repository_absolute_path: str):

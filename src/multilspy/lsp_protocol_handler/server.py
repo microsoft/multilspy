@@ -50,8 +50,8 @@ class ProcessLaunchInfo:
     This class is used to store the information required to launch a process.
     """
 
-    # The command to launch the process
-    cmd: str
+    # The command to launch the process as a list of arguments (no shell involved)
+    cmd: List[str]
 
     # The environment variables to set for the process
     env: Dict[str, str] = dataclasses.field(default_factory=dict)
@@ -214,8 +214,8 @@ class LanguageServerHandler:
         """
         child_proc_env = os.environ.copy()
         child_proc_env.update(self.process_launch_info.env)
-        self.process = await asyncio.create_subprocess_shell(
-            self.process_launch_info.cmd,
+        self.process = await asyncio.create_subprocess_exec(
+            *self.process_launch_info.cmd,
             stdout=asyncio.subprocess.PIPE,
             stdin=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -294,7 +294,7 @@ class LanguageServerHandler:
         """Try to terminate the process gracefully, then forcefully if necessary."""
         # First try to terminate the process tree gracefully
         self._signal_process_tree(process, terminate=True)
-    
+
         # Wait for the process to exit (with timeout)
         try:
             await asyncio.wait_for(process.wait(), timeout=10)
@@ -350,7 +350,11 @@ class LanguageServerHandler:
         """
         Perform the shutdown sequence for the client, including sending the shutdown request to the server and notifying it of exit
         """
-        await self.send.shutdown()
+        try:
+            await asyncio.wait_for(self.send.shutdown(), timeout=30)
+        except (asyncio.TimeoutError, Exception):
+            # Server didn't respond to shutdown request; proceed to exit/kill
+            pass
         self._received_shutdown = True
         self.notify.exit()
         if self.process and self.process.stdout:

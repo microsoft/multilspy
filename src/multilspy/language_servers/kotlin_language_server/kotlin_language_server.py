@@ -45,7 +45,7 @@ class KotlinLanguageServer(LanguageServer):
         self.runtime_dependency_paths = runtime_dependency_paths
         
         # Create command to execute the Kotlin Language Server script
-        cmd = f'"{self.runtime_dependency_paths.kotlin_executable_path}"'
+        cmd = [self.runtime_dependency_paths.kotlin_executable_path]
         
         # Set environment variables including JAVA_HOME
         proc_env = {"JAVA_HOME": self.runtime_dependency_paths.java_home_path}

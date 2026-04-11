@@ -35,7 +35,7 @@ class RustAnalyzer(LanguageServer):
             config,
             logger,
             repository_root_path,
-            ProcessLaunchInfo(cmd=rustanalyzer_executable_path, cwd=repository_root_path),
+            ProcessLaunchInfo(cmd=[rustanalyzer_executable_path], cwd=repository_root_path),
             "rust",
         )
         self.server_ready = asyncio.Event()

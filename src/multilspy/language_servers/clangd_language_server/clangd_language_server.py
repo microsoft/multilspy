@@ -37,7 +37,7 @@ class ClangdLanguageServer(LanguageServer):
             config,
             logger,
             repository_root_path,
-            ProcessLaunchInfo(cmd=clangd_executable_path, cwd=repository_root_path),
+            ProcessLaunchInfo(cmd=[clangd_executable_path], cwd=repository_root_path),
             "cpp",
         )
         self.server_ready = asyncio.Event()

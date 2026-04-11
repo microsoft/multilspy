@@ -70,11 +70,11 @@ class Gopls(LanguageServer):
     def __init__(self, config: MultilspyConfig, logger: MultilspyLogger, repository_root_path: str):
         if config.server_binary:
             assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
-            cmd = config.server_binary
+            cmd = [config.server_binary]
         else:
             # Check runtime dependencies before initializing
             self.setup_runtime_dependency()
-            cmd = "gopls"
+            cmd = ["gopls"]
 
         super().__init__(
             config,

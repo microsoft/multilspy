@@ -51,7 +51,7 @@ class TypeScriptLanguageServer(LanguageServer):
         """
         if config.server_binary:
             assert os.path.exists(config.server_binary), f"Server binary not found: {config.server_binary}"
-            return f"{config.server_binary} --stdio"
+            return [config.server_binary, "--stdio"]
 
         platform_id = PlatformUtils.get_platform_id()
 
@@ -108,7 +108,7 @@ class TypeScriptLanguageServer(LanguageServer):
                     )
 
         assert os.path.exists(tsserver_executable_path), "typescript-language-server executable not found. Please install typescript-language-server and try again."
-        return f"{tsserver_executable_path} --stdio"
+        return [tsserver_executable_path, "--stdio"]
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """
