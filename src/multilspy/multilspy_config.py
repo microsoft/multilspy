@@ -23,6 +23,7 @@ class Language(str, Enum):
     DART = "dart"
     CPP = "cpp"
     PHP = "php"
+    ELIXIR = "elixir"
 
     def __str__(self) -> str:
         return self.value

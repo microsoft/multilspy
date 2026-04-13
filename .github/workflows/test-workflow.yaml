@@ -13,7 +13,7 @@ jobs:
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     strategy:
       matrix:
         python-version: ["3.10", "3.12", "3.14"]
@@ -55,6 +55,13 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+
+    # ElixirLS requires Elixir and Erlang/OTP
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.18'
+        otp-version: '27'
 
     # --- Workarounds for GitHub runner environment issues ---
     # JDTLS downloads its own JRE, but pre-installed JDKs on the runner

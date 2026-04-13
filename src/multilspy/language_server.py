@@ -127,6 +127,10 @@ class LanguageServer:
             from multilspy.language_servers.intelephense.intelephense import Intelephense
 
             return Intelephense(config, logger, repository_root_path)
+        elif config.code_language == Language.ELIXIR:
+            from multilspy.language_servers.elixir_language_server.elixir_language_server import ElixirLanguageServer
+
+            return ElixirLanguageServer(config, logger, repository_root_path)
 
         else:
             logger.log(f"Language {config.code_language} is not supported", logging.ERROR)
@@ -444,6 +448,9 @@ class LanguageServer:
             new_item["absolutePath"] = PathUtils.uri_to_path(new_item["uri"])
             new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
             ret.append(multilspy_types.Location(**new_item))
+        elif response is None:
+            # LSP spec allows null response when no definition is found
+            pass
         else:
             assert False, f"Unexpected response from Language Server: {response}"
 
