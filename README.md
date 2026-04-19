@@ -51,6 +51,7 @@ pip install multilspy
 | kotlin | KotlinLanguageServer |
 | php | Intelephense |
 | cpp | clangd |
+| bsl | [bsl-language-server](https://github.com/1c-syntax/bsl-language-server) (1C:Enterprise / OneScript — requires Java 17+) |
 
 
 ## Usage
@@ -60,7 +61,7 @@ from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_logger import MultilspyLogger
 ...
-config = MultilspyConfig.from_dict({"code_language": "java"}) # Also supports "python", "rust", "csharp", "typescript", "javascript", "go", "dart", "ruby", "kotlin", "php"
+config = MultilspyConfig.from_dict({"code_language": "java"}) # Also supports "python", "rust", "csharp", "typescript", "javascript", "go", "dart", "ruby", "kotlin", "php", "bsl"
 logger = MultilspyLogger()
 lsp = SyncLanguageServer.create(config, logger, "/abs/path/to/project/root/")
 with lsp.start_server():
