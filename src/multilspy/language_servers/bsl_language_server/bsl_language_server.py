@@ -11,6 +11,7 @@ Prerequisites:
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -83,6 +84,18 @@ class BSLLanguageServer(LanguageServer):
             )
             FileUtils.download_file(logger, dep["url"], jar_path)
 
+        expected_sha = dep.get("sha256") or ""
+        if expected_sha:
+            with open(jar_path, "rb") as jar_f:
+                actual_sha = hashlib.sha256(jar_f.read()).hexdigest()
+            if actual_sha != expected_sha:
+                os.remove(jar_path)
+                raise RuntimeError(
+                    f"BSL Language Server JAR SHA256 mismatch: "
+                    f"expected {expected_sha}, got {actual_sha}. "
+                    f"Corrupted or tampered download; retry required."
+                )
+
         return jar_path
 
     def _get_initialize_params(self, repository_absolute_path: str) -> dict:
@@ -152,9 +165,13 @@ class BSLLanguageServer(LanguageServer):
             finally:
                 try:
                     await self.server.shutdown()
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.logger.log(
+                        f"BSL LS shutdown() raised: {e!r}", logging.WARNING
+                    )
                 try:
                     await self.server.stop()
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.logger.log(
+                        f"BSL LS stop() raised: {e!r}", logging.WARNING
+                    )
