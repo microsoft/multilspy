@@ -1,0 +1,70 @@
+{
+    "_description": "Used to download the runtime dependencies for running Clangd.",
+    "odin": [
+        {
+            "description": "Odin for Linux (x64)",
+            "url": "https://github.com/odin-lang/Odin/releases/download/dev-2026-05/odin-linux-amd64-dev-2026-05.tar.gz",
+            "platformId": "linux-x64",
+            "archiveType": "gztar",
+            "binaryName": "odin-linux-amd64-nightly+2026-05-03/odin"
+        },
+        {
+            "description": "Odin for Windows (x64)",
+            "url": "https://github.com/odin-lang/Odin/releases/download/dev-2026-05/odin-windows-amd64-dev-2026-05.zip",
+            "platformId": "win-x64",
+            "archiveType": "zip",
+            "binaryName": "dist/odin.exe"
+        },
+        {
+            "description": "Odin for macOS (x64)",
+            "url": "https://github.com/odin-lang/Odin/releases/download/dev-2026-05/odin-macos-amd64-dev-2026-05.tar.gz",
+            "platformId": "osx-x64",
+            "archiveType": "gztar",
+            "binaryName": "odin-macos-amd64-nightly+2026-05-03/odin"
+        },
+        {
+            "description": "Odin for macOS (Arm64)",
+            "url": "https://github.com/odin-lang/Odin/releases/download/dev-2026-05/odin-macos-arm64-dev-2026-05.tar.gz",
+            "platformId": "osx-arm64",
+            "archiveType": "gztar",
+            "binaryName": "odin-macos-arm64-nightly+2026-05-03/odin"
+        }
+    ],
+    "ols": [
+        {
+            "description": "Ols for Linux (x64)",
+            "url": "https://github.com/DanielGavin/ols/releases/download/dev-2026-05/ols-x86_64-unknown-linux-gnu.zip",
+            "platformId": "linux-x64",
+            "archiveType": "zip",
+            "binaryName": "ols-x86_64-unknown-linux-gnu"
+        },
+        {
+            "description": "Ols for Windows (x64)",
+            "url": "https://github.com/DanielGavin/ols/releases/download/dev-2026-05/ols-x86_64-pc-windows-msvc.zip",
+            "platformId": "win-x64",
+            "archiveType": "zip",
+            "binaryName": "ols-x86_64-pc-windows-msvc.exe"
+        },
+        {
+            "description": "Ols for macOS (x64)",
+            "url": "https://github.com/DanielGavin/ols/releases/download/dev-2026-05/ols-x86_64-darwin.zip",
+            "platformId": "osx-x64",
+            "archiveType": "zip",
+            "binaryName": "ols-x86_64-darwin"
+        },
+        {
+            "description": "Ols for Linux (Arm64)",
+            "url": "https://github.com/DanielGavin/ols/releases/download/dev-2026-05/ols-arm64-unknown-linux-gnu.zip",
+            "platformId": "linux-arm64",
+            "archiveType": "zip",
+            "binaryName": "ols-arm64-unknown-linux-gnu"
+        },
+        {
+            "description": "Ols for macOS (Arm64)",
+            "url": "https://github.com/DanielGavin/ols/releases/download/dev-2026-05/ols-arm64-darwin.zip",
+            "platformId": "osx-arm64",
+            "archiveType": "zip",
+            "binaryName": "ols-arm64-darwin"
+        }
+    ]
+}
