@@ -1,0 +1,7 @@
+{
+  	"_description": "This file contains the initialization parameters for the Odin Language Server.",
+    "$schema": "https://raw.githubusercontent.com/DanielGavin/ols/master/misc/ols.schema.json",
+    "enable_document_symbols": true,
+    "enable_hover": true,
+    "enable_snippets": true
+}
