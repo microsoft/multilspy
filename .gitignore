@@ -411,3 +411,4 @@ venv/
 
 src/multilspy/language_servers/intelephense/static/
 src/multilspy/language_servers/elixir_language_server/static/
+src/multilspy/language_servers/bsl_language_server/static/
