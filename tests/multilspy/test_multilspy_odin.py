@@ -10,6 +10,24 @@ from pathlib import PurePath
 
 pytest_plugins = ("pytest_asyncio",)
 
+
+def _hover_text(hover) -> str:
+    contents = hover["contents"]
+    if isinstance(contents, str):
+        return contents
+    if isinstance(contents, dict):
+        return contents.get("value", str(contents))
+    if isinstance(contents, list):
+        parts = []
+        for item in contents:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.append(item.get("value", str(item)))
+        return " ".join(parts)
+    return str(contents)
+
+
 @pytest.mark.asyncio
 async def test_multilspy_odin_example():
     """
@@ -25,23 +43,22 @@ async def test_multilspy_odin_example():
         lsp = LanguageServer.create(context.config, context.logger, context.source_directory)
 
         async with lsp.start_server():
-            # Wait for server to be fully initialized
             await lsp.server_ready.wait()
-            
+
             path = str(PurePath("absolute_beginners/5_structs.odin"))
-            
-            # Test 1: Get definition of the 'thread' package import
+            expected_rel = str(PurePath("absolute_beginners/5_structs.odin"))
+
+            # Test 1: Get definition of the 'fmt' package import
             result = await lsp.request_definition(path, 2, 13)
-            
+
             assert isinstance(result, list)
             assert len(result) >= 1
-
 
             item = result[0]
             assert "fmt" in item["uri"]
 
-            # Test 2: Find references to the 'name' variable
-            result = await lsp.request_references(path, 12, 1)  # Position of name declaration
+            # Test 2: Find references to the 'name' field
+            result = await lsp.request_references(path, 12, 1)
             assert isinstance(result, list)
             assert len(result) == 3
 
@@ -52,34 +69,35 @@ async def test_multilspy_odin_example():
             expected_results = [
                 {
                     "range": {
-                        "start": { "line": 36, "character": 2 },
-                        "end": { "line": 36, "character": 6 }
+                        "start": {"line": 36, "character": 2},
+                        "end": {"line": 36, "character": 6},
                     },
-                    "relativePath": "absolute_beginners\\5_structs.odin"
+                    "relativePath": expected_rel,
                 },
                 {
                     "range": {
-                        "start": { "line": 28, "character": 6 },
-                        "end": { "line": 28, "character": 10 }
+                        "start": {"line": 28, "character": 6},
+                        "end": {"line": 28, "character": 10},
                     },
-                    "relativePath": "absolute_beginners\\5_structs.odin"
+                    "relativePath": expected_rel,
                 },
                 {
                     "range": {
-                        "start": { "line": 46, "character": 2 },
-                        "end": { "line": 46, "character": 6 }
+                        "start": {"line": 46, "character": 2},
+                        "end": {"line": 46, "character": 6},
                     },
-                    "relativePath": "absolute_beginners\\5_structs.odin"
-                }
+                    "relativePath": expected_rel,
+                },
             ]
 
             for expected in expected_results:
-                assert(expected in result)
+                assert expected in result
 
-            # # Test 3: Get hover information for the 'age' variable
+            # Test 3: Get hover information for the 'age' field use
             result = await lsp.request_hover(path, 47, 2)
             assert result is not None
-            assert "Cat.age: int" in result["contents"]["value"]
+            assert "Cat.age: int" in _hover_text(result)
+
             # Test 4: Get document symbols
             result = await lsp.request_document_symbols(path)
             assert isinstance(result, tuple)

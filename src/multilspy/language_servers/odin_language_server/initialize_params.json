@@ -1,7 +1,53 @@
 {
-  	"_description": "This file contains the initialization parameters for the Odin Language Server.",
-    "$schema": "https://raw.githubusercontent.com/DanielGavin/ols/master/misc/ols.schema.json",
-    "enable_document_symbols": true,
-    "enable_hover": true,
-    "enable_snippets": true
+    "_description": "The parameters sent by the client when initializing the language server with the \"initialize\" request. More details at https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initialize",
+    "processId": "os.getpid()",
+    "locale": "en",
+    "rootPath": "$rootPath",
+    "rootUri": "$rootUri",
+    "capabilities": {
+        "textDocument": {
+            "synchronization": {
+                "didSave": true,
+                "dynamicRegistration": true
+            },
+            "completion": {
+                "dynamicRegistration": true,
+                "completionItem": {
+                    "snippetSupport": true
+                }
+            },
+            "definition": {
+                "dynamicRegistration": true
+            },
+            "references": {
+                "dynamicRegistration": true
+            },
+            "hover": {
+                "dynamicRegistration": true,
+                "contentFormat": ["markdown", "plaintext"]
+            },
+            "documentSymbol": {
+                "dynamicRegistration": true
+            }
+        },
+        "workspace": {
+            "workspaceFolders": true,
+            "didChangeConfiguration": {
+                "dynamicRegistration": true
+            }
+        }
+    },
+    "workspaceFolders": [
+        {
+            "uri": "$uri",
+            "name": "$name"
+        }
+    ],
+    "initializationOptions": {
+        "enable_document_symbols": true,
+        "enable_hover": true,
+        "enable_snippets": true,
+        "odin_command": "$odin_command",
+        "odin_root_override": "$odin_root_override"
+    }
 }
