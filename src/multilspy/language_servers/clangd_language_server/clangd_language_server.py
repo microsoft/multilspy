@@ -84,7 +84,7 @@ class ClangdLanguageServer(LanguageServer):
                 raise RuntimeError(f"Unsupported archive type: {dependency['archiveType']}")
             if not os.path.exists(clangd_executable_path):
                 raise FileNotFoundError(f"clangd executable was not found at {clangd_executable_path} after extraction")
-        os.chmod(clangd_executable_path, stat.S_IEXEC)
+        os.chmod(clangd_executable_path, os.stat(clangd_executable_path).st_mode | stat.S_IEXEC)
 
         return clangd_executable_path
 

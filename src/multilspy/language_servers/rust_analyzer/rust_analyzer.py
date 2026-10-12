@@ -74,7 +74,7 @@ class RustAnalyzer(LanguageServer):
                     logger, dependency["url"], rustanalyzer_ls_dir, dependency["archiveType"]
                 )
         assert os.path.exists(rustanalyzer_executable_path)
-        os.chmod(rustanalyzer_executable_path, stat.S_IEXEC)
+        os.chmod(rustanalyzer_executable_path, os.stat(rustanalyzer_executable_path).st_mode | stat.S_IEXEC)
 
         return rustanalyzer_executable_path
 

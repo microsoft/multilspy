@@ -192,7 +192,7 @@ class EclipseJDTLS(LanguageServer):
                 logger, dependency["url"], vscode_java_path, dependency["archiveType"]
             )
 
-        os.chmod(jre_path, stat.S_IEXEC)
+        os.chmod(jre_path, os.stat(jre_path).st_mode | stat.S_IEXEC)
 
         assert os.path.exists(vscode_java_path)
         assert os.path.exists(jre_home_path)

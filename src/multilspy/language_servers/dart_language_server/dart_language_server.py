@@ -62,7 +62,7 @@ class DartLanguageServer(LanguageServer):
 
 
         assert os.path.exists(dart_executable_path)
-        os.chmod(dart_executable_path, stat.S_IEXEC)
+        os.chmod(dart_executable_path, os.stat(dart_executable_path).st_mode | stat.S_IEXEC)
 
         return [dart_executable_path, "language-server", "--client-id", "multilspy.dart", "--client-version", "1.2"]
 
