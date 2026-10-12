@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import pathlib
+import subprocess
 
 import stat
 from contextlib import asynccontextmanager
@@ -101,12 +102,47 @@ class OmniSharp(LanguageServer):
                 "formattingOptions:tabSize=4",
                 "formattingOptions:indentationSize=4",
             ]
+        env = {}
+        if not config.server_binary and not any(key.lower() == "omnisharp_sdk__path" for key in os.environ):
+            env["OMNISHARP_Sdk__Path"] = self._get_sdk_path(os.path.dirname(slnfilename))
         super().__init__(
-            config, logger, repository_root_path, ProcessLaunchInfo(cmd=cmd, cwd=repository_root_path), "csharp"
+            config, logger, repository_root_path,
+            ProcessLaunchInfo(cmd=cmd, env=env, cwd=repository_root_path), "csharp"
         )
 
         self.definition_available = asyncio.Event()
         self.references_available = asyncio.Event()
+
+    @staticmethod
+    def _get_sdk_path(solution_directory: str) -> str:
+        """Select the solution's SDK instead of OmniSharp's newest-installed default."""
+        try:
+            version = subprocess.run(
+                ["dotnet", "--version"], cwd=solution_directory,
+                check=True, capture_output=True, text=True, timeout=30,
+            ).stdout.strip()
+            # The pinned OmniSharp's MSBuild integration fails to initialize with
+            # .NET 10. Report this before launching a server that would hang.
+            if int(version.split(".")[0]) >= 10:
+                raise MultilspyException(
+                    f"OmniSharp 1.39.13 cannot use .NET SDK {version}. "
+                    "Select a compatible SDK (for example .NET 6 or 8) in the solution's global.json, "
+                    "or configure a compatible server_binary."
+                )
+            sdks = subprocess.run(
+                ["dotnet", "--list-sdks"], cwd=solution_directory,
+                check=True, capture_output=True, text=True, timeout=30,
+            ).stdout
+        except (OSError, subprocess.SubprocessError, ValueError) as exc:
+            raise MultilspyException(
+                "Could not resolve the .NET SDK for OmniSharp. Install the SDK selected by "
+                f"the solution's global.json and ensure dotnet is on PATH: {exc}"
+            ) from exc
+        for sdk in sdks.splitlines():
+            parts = sdk.split(" ", 1)
+            if len(parts) == 2 and parts[0] == version:
+                return str(pathlib.Path(parts[1].strip().strip("[]")) / version)
+        raise MultilspyException(f"Could not locate the selected .NET SDK {version} for OmniSharp")
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """

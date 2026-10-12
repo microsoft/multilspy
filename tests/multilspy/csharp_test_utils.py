@@ -1,6 +1,6 @@
 """Pinned Json.NET checkout shared by the async and sync OmniSharp tests."""
 
-from pathlib import Path, PurePath
+from pathlib import PurePath
 import subprocess
 
 import pytest
@@ -16,7 +16,7 @@ SETTINGS = str(PurePath("Newtonsoft.Json/JsonSerializerSettings.cs"))
 
 
 @pytest.fixture
-def csharp_project(tmp_path, monkeypatch):
+def csharp_project(tmp_path):
     project = tmp_path / "Newtonsoft.Json"
 
     def run(command, cwd=None):
@@ -34,17 +34,6 @@ def csharp_project(tmp_path, monkeypatch):
     source = project / "Src"
     run(["dotnet", "restore", "Newtonsoft.Json.sln"], cwd=source)
 
-    # OmniSharp otherwise picks the newest installed MSBuild, which may be
-    # incompatible (for example .NET 10 on GitHub runners). Honor global.json.
-    sdk_version = run(["dotnet", "--version"], cwd=source)
-    for sdk in run(["dotnet", "--list-sdks"], cwd=source).splitlines():
-        version, directory = sdk.split(" ", 1)
-        if version == sdk_version:
-            sdk_path = Path(directory.strip("[]")) / version
-            monkeypatch.setenv("OMNISHARP_Sdk__Path", str(sdk_path))
-            break
-    else:
-        pytest.fail(f"Could not locate the selected .NET SDK {sdk_version}")
     return source
 
 
