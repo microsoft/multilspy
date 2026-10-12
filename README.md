@@ -23,7 +23,7 @@ Some of the analysis results that `multilspy` can provide are:
 - Please create an issue/PR to add any other LSP request not listed above
 
 ## Installation
-It is ideal to create a new virtual environment with `python>=3.10`. To create a virtual environment using conda and activate it:
+Multilspy requires Python 3.10 or newer. We recommend creating a new virtual environment. To create a virtual environment using conda and activate it:
 ```
 conda create -n multilspy_env python=3.10
 conda activate multilspy_env
