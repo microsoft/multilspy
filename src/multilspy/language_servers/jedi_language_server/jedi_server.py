@@ -79,10 +79,6 @@ class JediServer(LanguageServer):
         async def do_nothing(params):
             return
 
-        async def check_experimental_status(params):
-            if params["quiescent"] == True:
-                self.completions_available.set()
-
         async def window_log_message(msg):
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
 
@@ -93,7 +89,6 @@ class JediServer(LanguageServer):
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
-        self.server.on_notification("experimental/serverStatus", check_experimental_status)
 
         async with super().start_server():
             self.logger.log("Starting jedi-language-server server process", logging.INFO)
@@ -113,6 +108,7 @@ class JediServer(LanguageServer):
             }
 
             self.server.notify.initialized({})
+            self.completions_available.set()
             try:
                 yield self
             finally:
