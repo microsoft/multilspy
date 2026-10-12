@@ -528,15 +528,17 @@ class LanguageServer:
             }
             response: Union[List[LSPTypes.CompletionItem], LSPTypes.CompletionList, None] = None
 
-            num_retries = 0
-            while response is None or (response["isIncomplete"] and num_retries < 30):
+            for _ in range(30):
                 await self.completions_available.wait()
                 response: Union[
                     List[LSPTypes.CompletionItem], LSPTypes.CompletionList, None
                 ] = await self.server.send.completion(completion_params)
+                if response is None:
+                    return []
                 if isinstance(response, list):
                     response = {"items": response, "isIncomplete": False}
-                num_retries += 1
+                if not response["isIncomplete"]:
+                    break
 
             # TODO: Understand how to appropriately handle `isIncomplete`
             if response is None or (response["isIncomplete"] and not(allow_incomplete)):
