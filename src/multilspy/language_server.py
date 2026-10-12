@@ -783,18 +783,34 @@ class SyncLanguageServer:
         :return: None
         """
         self.loop = asyncio.new_event_loop()
-        loop_thread = threading.Thread(target=self.loop.run_forever, daemon=True)
-        loop_thread.start()
-        ctx = self.language_server.start_server()
-        asyncio.run_coroutine_threadsafe(ctx.__aenter__(), loop=self.loop).result()
+        self.loop_thread = threading.Thread(target=self.loop.run_forever, daemon=True)
+        self.loop_thread.start()
+
+        async def initialize(ctx):
+            try:
+                await asyncio.wait_for(ctx.__aenter__(), timeout=self.timeout)
+            except BaseException:
+                # Initialization can fail before the adapter reaches its cleanup
+                # block. Stop any process it has already launched.
+                try:
+                    await self.language_server.server.stop()
+                except Exception as exc:
+                    self.language_server.logger.log(f"Failed to clean up language server: {exc}", logging.ERROR)
+                raise
+
         try:
-            yield self
+            ctx = self.language_server.start_server()
+            asyncio.run_coroutine_threadsafe(initialize(ctx), loop=self.loop).result()
+            try:
+                yield self
+            finally:
+                asyncio.run_coroutine_threadsafe(
+                    ctx.__aexit__(None, None, None), loop=self.loop
+                ).result()
         finally:
-            asyncio.run_coroutine_threadsafe(
-                ctx.__aexit__(None, None, None), loop=self.loop
-            ).result()
             self.loop.call_soon_threadsafe(self.loop.stop)
-            loop_thread.join()
+            self.loop_thread.join()
+            self.loop.close()
 
     def request_definition(self, file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
         """
