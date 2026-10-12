@@ -149,16 +149,6 @@ class TypeScriptLanguageServer(LanguageServer):
         # LanguageServer has been shutdown
         """
 
-        async def register_capability_handler(params):
-            assert "registrations" in params
-            for registration in params["registrations"]:
-                if registration["method"] == "workspace/executeCommand":
-                    self.initialize_searcher_command_available.set()
-                    # TypeScript doesn't have a direct equivalent to resolve_main_method
-                    # You might want to set a different flag or remove this line
-                    # self.resolve_main_method_available.set()
-            return
-
         async def execute_client_command_handler(params):
             return []
 
@@ -168,7 +158,7 @@ class TypeScriptLanguageServer(LanguageServer):
         async def window_log_message(msg):
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
 
-        self.server.on_request("client/registerCapability", register_capability_handler)
+        self.server.on_request("client/registerCapability", do_nothing)
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
         self.server.on_notification("$/progress", do_nothing)
