@@ -189,7 +189,7 @@ class OmniSharp(LanguageServer):
                 logger, runtime_dependencies["OmniSharp"]["url"], omnisharp_ls_dir, "zip"
             )
         assert os.path.exists(omnisharp_executable_path)
-        os.chmod(omnisharp_executable_path, stat.S_IEXEC)
+        os.chmod(omnisharp_executable_path, os.stat(omnisharp_executable_path).st_mode | stat.S_IEXEC)
 
         razor_omnisharp_ls_dir = os.path.join(base_install_dir, "RazorOmnisharp")
         razor_omnisharp_dll_path = os.path.join(
