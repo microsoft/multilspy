@@ -13,6 +13,7 @@ from tests.multilspy.csharp_test_utils import (
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(180)
 async def test_multilspy_csharp(csharp_project):
     server = LanguageServer.create(
         MultilspyConfig(code_language=Language.CSHARP), MultilspyLogger(), str(csharp_project)
