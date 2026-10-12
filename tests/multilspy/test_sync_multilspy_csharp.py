@@ -1,64 +1,26 @@
-"""
-This file contains tests for running the C# Language Server: OmniSharp
-"""
+"""Synchronous integration coverage for OmniSharp using the pinned Json.NET solution."""
 
 import pytest
 
 from multilspy import SyncLanguageServer
-from multilspy.multilspy_config import Language
-from tests.test_utils import create_test_context
-from pathlib import PurePath
+from multilspy.multilspy_config import Language, MultilspyConfig
+from multilspy.multilspy_logger import MultilspyLogger
+from tests.multilspy.csharp_test_utils import (
+    csharp_project, assert_definition, assert_references, assert_completions, SERIALIZER, SETTINGS,
+)
 
-@pytest.mark.skip(reason="Need to find alternative repository for testing")
-def test_multilspy_csharp_ryujinx() -> None:
-    """
-    Test the working of multilspy with C# repository - Ryujinx
-    """
-    code_language = Language.CSHARP
-    params = {
-        "code_language": code_language,
-        "repo_url": "https://github.com/LakshyAAAgrawal/Ryujinx/",
-        "repo_commit": "e768a54f17b390c3ac10904c7909e3bef020edbd"
-    }
-    with create_test_context(params) as context:
-        lsp = SyncLanguageServer.create(context.config, context.logger, context.source_directory)
 
-        # All the communication with the language server must be performed inside the context manager
-        # The server process is started when the context manager is entered and is terminated when the context manager is exited.
-        with lsp.start_server():
-            result = lsp.request_definition(str(PurePath("src/Ryujinx.Audio/Input/AudioInputManager.cs")), 176, 44)
-
-            assert isinstance(result, list)
-            assert len(result) == 1
-            item = result[0]
-            assert item["relativePath"] == str(PurePath("src/Ryujinx.Audio/Constants.cs"))
-            assert item["range"] == {
-                "start": {"line": 15, "character": 28},
-                "end": {"line": 15, "character": 50},
-            }
-
-            result = lsp.request_references(str(PurePath("src/Ryujinx.Audio/Constants.cs")), 15, 40)
-
-            assert isinstance(result, list)
-            assert len(result) == 2
-
-            for item in result:
-                del item["uri"]
-                del item["absolutePath"]
-
-            assert result == [
-                {
-                    "relativePath": str(PurePath("src/Ryujinx.Audio/Input/AudioInputManager.cs")),
-                    "range": {
-                        "start": {"line": 176, "character": 37},
-                        "end": {"line": 176, "character": 59},
-                    },
-                },
-                {
-                    "relativePath": str(PurePath("src/Ryujinx.Audio/Input/AudioInputSystem.cs")),
-                    "range": {
-                        "start": {"line": 77, "character": 29},
-                        "end": {"line": 77, "character": 51},
-                    },
-                },
-            ]
+@pytest.mark.timeout(180)
+def test_sync_multilspy_csharp(csharp_project):
+    server = SyncLanguageServer.create(
+        MultilspyConfig(code_language=Language.CSHARP), MultilspyLogger(), str(csharp_project), timeout=30
+    )
+    with server.start_server():
+        assert_definition(server.request_definition(SERIALIZER, 562, 58))
+        assert_references(server.request_references(SETTINGS, 53, 43))
+        with server.open_file(SETTINGS):
+            deleted = server.delete_text_between_positions(
+                SETTINGS, {"line": 53, "character": 92}, {"line": 53, "character": 99}
+            )
+            assert deleted == "Default"
+            assert_completions(server.request_completions(SETTINGS, 53, 92, allow_incomplete=True))
