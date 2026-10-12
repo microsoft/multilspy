@@ -800,7 +800,11 @@ class SyncLanguageServer:
 
         try:
             ctx = self.language_server.start_server()
-            asyncio.run_coroutine_threadsafe(initialize(ctx), loop=self.loop).result()
+            try:
+                asyncio.run_coroutine_threadsafe(initialize(ctx), loop=self.loop).result()
+            except asyncio.TimeoutError as exc:
+                # asyncio.TimeoutError was a separate exception before Python 3.11.
+                raise TimeoutError("Language server initialization timed out") from exc
             try:
                 yield self
             finally:
