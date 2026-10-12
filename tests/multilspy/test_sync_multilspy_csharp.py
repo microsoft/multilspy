@@ -1,10 +1,10 @@
-"""Synchronous integration coverage for OmniSharp using a local C# solution."""
+"""Synchronous integration coverage for OmniSharp using the pinned Json.NET solution."""
 
 from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import Language, MultilspyConfig
 from multilspy.multilspy_logger import MultilspyLogger
 from tests.multilspy.csharp_test_utils import (
-    csharp_project, assert_definition, assert_references, assert_completions,
+    csharp_project, assert_definition, assert_references, assert_completions, SERIALIZER, SETTINGS,
 )
 
 
@@ -13,11 +13,11 @@ def test_sync_multilspy_csharp(csharp_project):
         MultilspyConfig(code_language=Language.CSHARP), MultilspyLogger(), str(csharp_project), timeout=30
     )
     with server.start_server():
-        assert_definition(server.request_definition("Consumer.cs", 4, 46))
-        assert_references(server.request_references("Constants.cs", 6, 25))
-        with server.open_file("Consumer.cs"):
+        assert_definition(server.request_definition(SERIALIZER, 562, 58))
+        assert_references(server.request_references(SETTINGS, 53, 43))
+        with server.open_file(SETTINGS):
             deleted = server.delete_text_between_positions(
-                "Consumer.cs", {"line": 6, "character": 46}, {"line": 6, "character": 51}
+                SETTINGS, {"line": 53, "character": 92}, {"line": 53, "character": 99}
             )
-            assert deleted == "First"
-            assert_completions(server.request_completions("Consumer.cs", 6, 46, allow_incomplete=True))
+            assert deleted == "Default"
+            assert_completions(server.request_completions(SETTINGS, 53, 92, allow_incomplete=True))
