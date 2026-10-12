@@ -3,7 +3,13 @@
     "processId": "$processId",
     "rootPath": "$rootPath",
     "rootUri": "$rootUri",
-    "capabilities": {},
+    "capabilities": {
+        "textDocument": {
+            "documentSymbol": {
+                "hierarchicalDocumentSymbolSupport": true
+            }
+        }
+    },
     "initializationOptions": {
         "onlyAnalyzeProjectsWithOpenFiles": false,
         "suggestFromUnimportedLibraries": true,

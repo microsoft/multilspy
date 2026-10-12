@@ -37,40 +37,42 @@ async def test_multilspy_dart_open_nutri_tracker():
             assert isinstance(result, tuple)
             assert len(result) == 2
 
-            symbols = result[0]
-            for symbol in symbols:
-                del symbol["deprecated"]
-                del symbol["kind"]
-                del symbol["location"]["uri"]
-
+            symbols = [
+                {key: symbol[key] for key in ("name", "range", "selectionRange")}
+                for symbol in result[0]
+            ]
             assert symbols == [
                 {
-                    "location": {
-                        "range": {
-                            "end": {"character": 24, "line": 3},
-                            "start": {"character": 6, "line": 3},
-                        },
-                    },
                     "name": "CopyOrDeleteDialog",
+                    "range": {
+                        "start": {"line": 3, "character": 0},
+                        "end": {"line": 25, "character": 1},
+                    },
+                    "selectionRange": {
+                        "start": {"line": 3, "character": 6},
+                        "end": {"line": 3, "character": 24},
+                    },
                 },
                 {
-                    "containerName": "CopyOrDeleteDialog",
-                    "location": {
-                        "range": {
-                            "end": {"character": 26, "line": 4},
-                            "start": {"character": 8, "line": 4},
-                        },
-                    },
                     "name": "CopyOrDeleteDialog",
+                    "range": {
+                        "start": {"line": 4, "character": 2},
+                        "end": {"line": 4, "character": 40},
+                    },
+                    "selectionRange": {
+                        "start": {"line": 4, "character": 8},
+                        "end": {"line": 4, "character": 26},
+                    },
                 },
                 {
-                    "containerName": "CopyOrDeleteDialog",
-                    "location": {
-                        "range": {
-                            "end": {"character": 14, "line": 7},
-                            "start": {"character": 9, "line": 7},
-                        },
-                    },
                     "name": "build",
+                    "range": {
+                        "start": {"line": 7, "character": 2},
+                        "end": {"line": 24, "character": 3},
+                    },
+                    "selectionRange": {
+                        "start": {"line": 7, "character": 9},
+                        "end": {"line": 7, "character": 14},
+                    },
                 },
             ]
