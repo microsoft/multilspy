@@ -734,6 +734,27 @@ class SyncLanguageServer:
         """
         return SyncLanguageServer(LanguageServer.create(config, logger, repository_root_path), timeout=timeout)
 
+    def _call_on_loop(self, callback, *args):
+        """Run buffer and transport operations on the same thread as requests."""
+        if self.loop is None or not self.loop.is_running():
+            raise MultilspyException("Language Server not started")
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+        if running_loop is self.loop:
+            return callback(*args)
+
+        async def invoke():
+            return callback(*args)
+
+        future = asyncio.run_coroutine_threadsafe(invoke(), self.loop)
+        try:
+            return future.result(timeout=self.timeout)
+        except BaseException:
+            future.cancel()
+            raise
+
     @contextmanager
     def open_file(self, relative_file_path: str) -> Iterator[None]:
         """
@@ -741,8 +762,15 @@ class SyncLanguageServer:
 
         :param relative_file_path: The relative path of the file to open.
         """
-        with self.language_server.open_file(relative_file_path):
+        ctx = self.language_server.open_file(relative_file_path)
+        self._call_on_loop(ctx.__enter__)
+        try:
             yield
+        except BaseException as exc:
+            if not self._call_on_loop(ctx.__exit__, type(exc), exc, exc.__traceback__):
+                raise
+        else:
+            self._call_on_loop(ctx.__exit__, None, None, None)
 
     def insert_text_at_position(
         self, relative_file_path: str, line: int, column: int, text_to_be_inserted: str
@@ -756,7 +784,9 @@ class SyncLanguageServer:
         :param column: The column number at which text should be inserted.
         :param text_to_be_inserted: The text to insert.
         """
-        return self.language_server.insert_text_at_position(relative_file_path, line, column, text_to_be_inserted)
+        return self._call_on_loop(
+            self.language_server.insert_text_at_position, relative_file_path, line, column, text_to_be_inserted
+        )
 
     def delete_text_between_positions(
         self,
@@ -767,7 +797,7 @@ class SyncLanguageServer:
         """
         Delete text between the given start and end positions in the given file and return the deleted text.
         """
-        return self.language_server.delete_text_between_positions(relative_file_path, start, end)
+        return self._call_on_loop(self.language_server.delete_text_between_positions, relative_file_path, start, end)
 
     def get_open_file_text(self, relative_file_path: str) -> str:
         """
@@ -775,7 +805,7 @@ class SyncLanguageServer:
 
         :param relative_file_path: The relative path of the file to open.
         """
-        return self.language_server.get_open_file_text(relative_file_path)
+        return self._call_on_loop(self.language_server.get_open_file_text, relative_file_path)
    
     @contextmanager
     def start_server(self) -> Iterator["SyncLanguageServer"]:
