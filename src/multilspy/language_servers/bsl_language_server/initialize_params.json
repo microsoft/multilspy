@@ -1,0 +1,51 @@
+{
+  "_description": "Initialization parameters for the BSL Language Server (1C Enterprise / OneScript). See https://github.com/1c-syntax/bsl-language-server.",
+  "processId": "$processId",
+  "rootPath": "$rootPath",
+  "rootUri": "$rootUri",
+  "workspaceFolders": [
+    {
+      "uri": "$rootUri",
+      "name": "$rootName"
+    }
+  ],
+  "capabilities": {
+    "workspace": {
+      "workspaceFolders": true,
+      "configuration": true,
+      "didChangeWatchedFiles": {
+        "dynamicRegistration": false
+      },
+      "workspaceSymbol": {}
+    },
+    "textDocument": {
+      "synchronization": {
+        "didSave": true
+      },
+      "documentSymbol": {
+        "hierarchicalDocumentSymbolSupport": true
+      },
+      "definition": {
+        "linkSupport": true
+      },
+      "references": {},
+      "rename": {
+        "prepareSupport": true
+      },
+      "hover": {
+        "contentFormat": ["markdown", "plaintext"]
+      },
+      "completion": {
+        "completionItem": {
+          "snippetSupport": true,
+          "documentationFormat": ["markdown", "plaintext"]
+        }
+      },
+      "signatureHelp": {},
+      "formatting": {},
+      "codeAction": {}
+    }
+  },
+  "initializationOptions": {},
+  "trace": "off"
+}

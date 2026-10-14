@@ -131,6 +131,10 @@ class LanguageServer:
             from multilspy.language_servers.elixir_language_server.elixir_language_server import ElixirLanguageServer
 
             return ElixirLanguageServer(config, logger, repository_root_path)
+        elif config.code_language == Language.BSL:
+            from multilspy.language_servers.bsl_language_server.bsl_language_server import BSLLanguageServer
+
+            return BSLLanguageServer(config, logger, repository_root_path)
 
         else:
             logger.log(f"Language {config.code_language} is not supported", logging.ERROR)

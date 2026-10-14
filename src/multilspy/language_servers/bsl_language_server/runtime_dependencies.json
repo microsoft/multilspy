@@ -1,0 +1,12 @@
+{
+  "_description": "Used to download the runtime dependencies for BSL Language Server from https://github.com/1c-syntax/bsl-language-server. Java 17+ must be available in PATH.",
+  "runtimeDependency": {
+    "id": "BSLLanguageServer",
+    "description": "BSL Language Server (1C Enterprise / OneScript)",
+    "version": "0.22.0",
+    "url": "https://github.com/1c-syntax/bsl-language-server/releases/download/0.22.0/bsl-language-server-0.22.0.jar",
+    "archiveType": "jar",
+    "binaryName": "bsl-language-server.jar",
+    "sha256": "10835036c3b39eba9d1bbef65debc36ea99939a651165cd55ef86bf41c7e28ea"
+  }
+}
