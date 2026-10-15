@@ -24,6 +24,7 @@ class Language(str, Enum):
     CPP = "cpp"
     PHP = "php"
     ELIXIR = "elixir"
+    ODIN = "odin"
 
     def __str__(self) -> str:
         return self.value
