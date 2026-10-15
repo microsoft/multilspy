@@ -1,0 +1,61 @@
+{
+  "_description": "Used to download the runtime dependencies for running LuaLS. Obtained from https://github.com/LuaLS/lua-language-server/releases",
+  "runtimeDependencies": [
+    {
+      "id": "lua-language-server",
+      "description": "LuaLS for macOS (arm64)",
+      "url": "https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-darwin-arm64.tar.gz",
+      "platformId": "osx-arm64",
+      "archiveType": "gztar",
+      "binaryName": "lua-language-server"
+    },
+    {
+      "id": "lua-language-server",
+      "description": "LuaLS for macOS (x64)",
+      "url": "https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-darwin-x64.tar.gz",
+      "platformId": "osx-x64",
+      "archiveType": "gztar",
+      "binaryName": "lua-language-server"
+    },
+    {
+      "id": "lua-language-server",
+      "description": "LuaLS for macOS (universal fallback)",
+      "url": "https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-darwin-x64.tar.gz",
+      "platformId": "osx",
+      "archiveType": "gztar",
+      "binaryName": "lua-language-server"
+    },
+    {
+      "id": "lua-language-server",
+      "description": "LuaLS for Linux (x64)",
+      "url": "https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-linux-x64.tar.gz",
+      "platformId": "linux-x64",
+      "archiveType": "gztar",
+      "binaryName": "lua-language-server"
+    },
+    {
+      "id": "lua-language-server",
+      "description": "LuaLS for Linux (arm64)",
+      "url": "https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-linux-arm64.tar.gz",
+      "platformId": "linux-arm64",
+      "archiveType": "gztar",
+      "binaryName": "lua-language-server"
+    },
+    {
+      "id": "lua-language-server",
+      "description": "LuaLS for Windows (x64)",
+      "url": "https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-win32-x64.zip",
+      "platformId": "win-x64",
+      "archiveType": "zip",
+      "binaryName": "lua-language-server.exe"
+    },
+    {
+      "id": "lua-language-server",
+      "description": "LuaLS for Windows (x86)",
+      "url": "https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-win32-ia32.zip",
+      "platformId": "win-x86",
+      "archiveType": "zip",
+      "binaryName": "lua-language-server.exe"
+    }
+  ]
+}

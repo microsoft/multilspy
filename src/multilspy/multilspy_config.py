@@ -22,8 +22,12 @@ class Language(str, Enum):
     RUBY = "ruby"
     DART = "dart"
     CPP = "cpp"
-    PHP = "php"
+    SCALA = "scala"
+    SWIFT = "swift"
     ELIXIR = "elixir"
+    PHP = "php"
+    LUA = "lua"
+    BASH = "bash"
 
     def __str__(self) -> str:
         return self.value
@@ -36,6 +40,7 @@ class MultilspyConfig:
     code_language: Language
     trace_lsp_communication: bool = False
     start_independent_lsp_process: bool = True
+    request_timeout: float = 30.0
 
     # Path to a pre-installed language server binary. When set, multilspy
     # skips downloading the server and uses this binary directly.

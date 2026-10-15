@@ -1,0 +1,10 @@
+{
+  "_description": "Used to install bash-language-server using npm.",
+  "runtimeDependencies": [
+    {
+      "id": "bash-language-server",
+      "description": "bash-language-server package for Linux, macOS, and Windows.",
+      "command": "npm install --prefix ./ bash-language-server@5.8.0"
+    }
+  ]
+}

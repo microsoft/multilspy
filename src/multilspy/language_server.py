@@ -123,15 +123,30 @@ class LanguageServer:
             from multilspy.language_servers.clangd_language_server.clangd_language_server import ClangdLanguageServer
 
             return ClangdLanguageServer(config, logger, repository_root_path)
-        elif config.code_language == Language.PHP:
-            from multilspy.language_servers.intelephense.intelephense import Intelephense
+        elif config.code_language == Language.SCALA:
+            from multilspy.language_servers.metals.metals import Metals
 
-            return Intelephense(config, logger, repository_root_path)
+            return Metals(config, logger, repository_root_path)
+        elif config.code_language == Language.SWIFT:
+            from multilspy.language_servers.sourcekit_lsp.sourcekit_lsp import SourceKitLSP
+
+            return SourceKitLSP(config, logger, repository_root_path)
         elif config.code_language == Language.ELIXIR:
             from multilspy.language_servers.elixir_language_server.elixir_language_server import ElixirLanguageServer
 
             return ElixirLanguageServer(config, logger, repository_root_path)
+        elif config.code_language == Language.PHP:
+            from multilspy.language_servers.intelephense.intelephense import Intelephense
 
+            return Intelephense(config, logger, repository_root_path)
+        elif config.code_language == Language.LUA:
+            from multilspy.language_servers.lua_language_server.lua_language_server import LuaLanguageServer
+
+            return LuaLanguageServer(config, logger, repository_root_path)
+        elif config.code_language == Language.BASH:
+            from multilspy.language_servers.bash_language_server.bash_language_server import BashLanguageServer
+
+            return BashLanguageServer(config, logger, repository_root_path)
         else:
             logger.log(f"Language {config.code_language} is not supported", logging.ERROR)
             raise MultilspyException(f"Language {config.code_language} is not supported")
@@ -162,10 +177,12 @@ class LanguageServer:
                 "LanguageServer is an abstract class and cannot be instantiated directly. Use LanguageServer.create method instead."
             )
 
+        self.config = config
         self.logger = logger
         self.server_started = False
         self.repository_root_path: str = repository_root_path
         self.completions_available = asyncio.Event()
+        self.request_timeout: float = getattr(config, "request_timeout", 30.0)
 
         if config.trace_lsp_communication:
 
@@ -187,6 +204,28 @@ class LanguageServer:
 
         self.language_id = language_id
         self.open_file_buffers: Dict[str, LSPFileBuffer] = {}
+
+    def is_process_alive(self) -> bool:
+        """
+        Check if the language server process is still running.
+        """
+        if not self.server:
+            return False
+        return self.server.is_alive()
+
+    def check_process_health(self) -> bool:
+        """
+        Verify whether the language server process is still alive and responsive.
+        Logs a structured warning if the process has exited.
+        """
+        alive = self.is_process_alive()
+        if not alive:
+            returncode = self.server.process.returncode if self.server and self.server.process else "unknown"
+            self.logger.log(
+                f"Language server process is not alive (returncode: {returncode})",
+                logging.WARNING,
+            )
+        return alive
 
     @asynccontextmanager
     async def start_server(self) -> AsyncIterator["LanguageServer"]:
@@ -377,7 +416,7 @@ class LanguageServer:
         return file_buffer.contents
 
     async def request_definition(
-        self, relative_file_path: str, line: int, column: int
+        self, relative_file_path: str, line: int, column: int, timeout: Optional[float] = None
     ) -> List[multilspy_types.Location]:
         """
         Raise a [textDocument/definition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition) request to the Language Server
@@ -386,6 +425,7 @@ class LanguageServer:
         :param relative_file_path: The relative path of the file that has the symbol for which definition should be looked up
         :param line: The line number of the symbol
         :param column: The column number of the symbol
+        :param timeout: Optional per-request timeout in seconds (defaults to config.request_timeout)
 
         :return List[multilspy_types.Location]: A list of locations where the symbol is defined
         """
@@ -397,24 +437,42 @@ class LanguageServer:
             )
             raise MultilspyException("Language Server not started")
 
-        with self.open_file(relative_file_path):
-            # sending request to the language server and waiting for response
-            response = await self.server.send.definition(
-                {
-                    LSPConstants.TEXT_DOCUMENT: {
-                        LSPConstants.URI: pathlib.Path(
-                            str(PurePath(self.repository_root_path, relative_file_path))
-                        ).as_uri()
-                    },
-                    LSPConstants.POSITION: {
-                        LSPConstants.LINE: line,
-                        LSPConstants.CHARACTER: column,
-                    },
-                }
+        effective_timeout = timeout if timeout is not None else self.request_timeout
+
+        async def _execute():
+            with self.open_file(relative_file_path):
+                # sending request to the language server and waiting for response
+                return await self.server.send.definition(
+                    {
+                        LSPConstants.TEXT_DOCUMENT: {
+                            LSPConstants.URI: pathlib.Path(
+                                str(PurePath(self.repository_root_path, relative_file_path))
+                            ).as_uri()
+                        },
+                        LSPConstants.POSITION: {
+                            LSPConstants.LINE: line,
+                            LSPConstants.CHARACTER: column,
+                        },
+                    }
+                )
+
+        try:
+            if effective_timeout is not None and effective_timeout > 0:
+                response = await asyncio.wait_for(_execute(), timeout=effective_timeout)
+            else:
+                response = await _execute()
+        except (asyncio.TimeoutError, TimeoutError):
+            self.logger.log(
+                f"LSP request timed out: method='textDocument/definition', file='{relative_file_path}', line={line}, column={column}, timeout={effective_timeout}s",
+                logging.WARNING,
             )
+            self.check_process_health()
+            return []
 
         ret: List[multilspy_types.Location] = []
-        if isinstance(response, list):
+        if response is None:
+            return ret
+        elif isinstance(response, list):
             # response is either of type Location[] or LocationLink[]
             for item in response:
                 assert isinstance(item, dict)
@@ -457,7 +515,7 @@ class LanguageServer:
         return ret
 
     async def request_references(
-        self, relative_file_path: str, line: int, column: int
+        self, relative_file_path: str, line: int, column: int, timeout: Optional[float] = None
     ) -> List[multilspy_types.Location]:
         """
         Raise a [textDocument/references](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_references) request to the Language Server
@@ -466,6 +524,7 @@ class LanguageServer:
         :param relative_file_path: The relative path of the file that has the symbol for which references should be looked up
         :param line: The line number of the symbol
         :param column: The column number of the symbol
+        :param timeout: Optional per-request timeout in seconds (defaults to config.request_timeout)
 
         :return List[multilspy_types.Location]: A list of locations where the symbol is referenced
         """
@@ -477,19 +536,37 @@ class LanguageServer:
             )
             raise MultilspyException("Language Server not started")
 
-        with self.open_file(relative_file_path):
-            # sending request to the language server and waiting for response
-            response = await self.server.send.references(
-                {
-                    "context": {"includeDeclaration": False},
-                    "textDocument": {
-                        "uri": pathlib.Path(os.path.join(self.repository_root_path, relative_file_path)).as_uri()
-                    },
-                    "position": {"line": line, "character": column},
-                }
+        effective_timeout = timeout if timeout is not None else self.request_timeout
+
+        async def _execute():
+            with self.open_file(relative_file_path):
+                # sending request to the language server and waiting for response
+                return await self.server.send.references(
+                    {
+                        "context": {"includeDeclaration": False},
+                        "textDocument": {
+                            "uri": pathlib.Path(os.path.join(self.repository_root_path, relative_file_path)).as_uri()
+                        },
+                        "position": {"line": line, "character": column},
+                    }
+                )
+
+        try:
+            if effective_timeout is not None and effective_timeout > 0:
+                response = await asyncio.wait_for(_execute(), timeout=effective_timeout)
+            else:
+                response = await _execute()
+        except (asyncio.TimeoutError, TimeoutError):
+            self.logger.log(
+                f"LSP request timed out: method='textDocument/references', file='{relative_file_path}', line={line}, column={column}, timeout={effective_timeout}s",
+                logging.WARNING,
             )
+            self.check_process_health()
+            return []
 
         ret: List[multilspy_types.Location] = []
+        if response is None:
+            return ret
         assert isinstance(response, list), f"Unexpected response from Language Server: {response}"
         for item in response:
             assert isinstance(item, dict)
@@ -505,7 +582,7 @@ class LanguageServer:
         return ret
 
     async def request_completions(
-        self, relative_file_path: str, line: int, column: int, allow_incomplete: bool = False
+        self, relative_file_path: str, line: int, column: int, allow_incomplete: bool = False, timeout: Optional[float] = None
     ) -> List[multilspy_types.CompletionItem]:
         """
         Raise a [textDocument/completion](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion) request to the Language Server
@@ -514,109 +591,146 @@ class LanguageServer:
         :param relative_file_path: The relative path of the file that has the symbol for which completions should be looked up
         :param line: The line number of the symbol
         :param column: The column number of the symbol
+        :param allow_incomplete: Whether to return incomplete completion list
+        :param timeout: Optional per-request timeout in seconds (defaults to config.request_timeout)
 
         :return List[multilspy_types.CompletionItem]: A list of completions
         """
-        with self.open_file(relative_file_path):
-            open_file_buffer = self.open_file_buffers[
-                pathlib.Path(os.path.join(self.repository_root_path, relative_file_path)).as_uri()
-            ]
-            completion_params: LSPTypes.CompletionParams = {
-                "position": {"line": line, "character": column},
-                "textDocument": {"uri": open_file_buffer.uri},
-                "context": {"triggerKind": LSPTypes.CompletionTriggerKind.Invoked},
-            }
-            response: Union[List[LSPTypes.CompletionItem], LSPTypes.CompletionList, None] = None
+        effective_timeout = timeout if timeout is not None else self.request_timeout
 
-            for _ in range(30):
-                await self.completions_available.wait()
-                response: Union[
-                    List[LSPTypes.CompletionItem], LSPTypes.CompletionList, None
-                ] = await self.server.send.completion(completion_params)
-                if response is None:
-                    return []
-                if isinstance(response, list):
-                    response = {"items": response, "isIncomplete": False}
-                if not response["isIncomplete"]:
-                    break
+        async def _execute():
+            with self.open_file(relative_file_path):
+                open_file_buffer = self.open_file_buffers[
+                    pathlib.Path(os.path.join(self.repository_root_path, relative_file_path)).as_uri()
+                ]
+                completion_params: LSPTypes.CompletionParams = {
+                    "position": {"line": line, "character": column},
+                    "textDocument": {"uri": open_file_buffer.uri},
+                    "context": {"triggerKind": LSPTypes.CompletionTriggerKind.Invoked},
+                }
+                response: Union[List[LSPTypes.CompletionItem], LSPTypes.CompletionList, None] = None
 
-            # TODO: Understand how to appropriately handle `isIncomplete`
-            if response is None or (response["isIncomplete"] and not(allow_incomplete)):
-                return []
+                for _ in range(30):
+                    await self.completions_available.wait()
+                    response = await self.server.send.completion(completion_params)
+                    if response is None:
+                        return None, completion_params
+                    if isinstance(response, list):
+                        response = {"items": response, "isIncomplete": False}
+                    if not response["isIncomplete"]:
+                        break
 
-            if "items" in response:
-                response = response["items"]
+                return response, completion_params
 
-            response: List[LSPTypes.CompletionItem] = response
+        try:
+            if effective_timeout is not None and effective_timeout > 0:
+                response, completion_params = await asyncio.wait_for(_execute(), timeout=effective_timeout)
+            else:
+                response, completion_params = await _execute()
+        except (asyncio.TimeoutError, TimeoutError):
+            self.logger.log(
+                f"LSP request timed out: method='textDocument/completion', file='{relative_file_path}', line={line}, column={column}, timeout={effective_timeout}s",
+                logging.WARNING,
+            )
+            self.check_process_health()
+            return []
 
-            # TODO: Handle the case when the completion is a keyword
-            items = [item for item in response if item["kind"] != LSPTypes.CompletionItemKind.Keyword]
+        # TODO: Understand how to appropriately handle `isIncomplete`
+        if response is None or (response["isIncomplete"] and not(allow_incomplete)):
+            return []
 
-            completions_list: List[multilspy_types.CompletionItem] = []
+        if "items" in response:
+            response = response["items"]
 
-            for item in items:
-                assert "insertText" in item or "textEdit" in item
-                assert "kind" in item
-                completion_item = {}
-                if "detail" in item:
-                    completion_item["detail"] = item["detail"]
+        response: List[LSPTypes.CompletionItem] = response
+
+        # TODO: Handle the case when the completion is a keyword
+        items = [item for item in response if item["kind"] != LSPTypes.CompletionItemKind.Keyword]
+
+        completions_list: List[multilspy_types.CompletionItem] = []
+
+        for item in items:
+            assert "insertText" in item or "textEdit" in item
+            assert "kind" in item
+            completion_item = {}
+            if "detail" in item:
+                completion_item["detail"] = item["detail"]
+            
+            if "label" in item:
+                completion_item["completionText"] = item["label"]
+                completion_item["kind"] = item["kind"]
+            elif "insertText" in item:
+                completion_item["completionText"] = item["insertText"]
+                completion_item["kind"] = item["kind"]
+            elif "textEdit" in item and "newText" in item["textEdit"]:
+                completion_item["completionText"] = item["textEdit"]["newText"]
+                completion_item["kind"] = item["kind"]
+            elif "textEdit" in item and "range" in item["textEdit"]:
+                new_dot_lineno, new_dot_colno = (
+                    completion_params["position"]["line"],
+                    completion_params["position"]["character"],
+                )
+                assert all(
+                    (
+                        item["textEdit"]["range"]["start"]["line"] == new_dot_lineno,
+                        item["textEdit"]["range"]["start"]["character"] == new_dot_colno,
+                        item["textEdit"]["range"]["start"]["line"] == item["textEdit"]["range"]["end"]["line"],
+                        item["textEdit"]["range"]["start"]["character"]
+                        == item["textEdit"]["range"]["end"]["character"],
+                    )
+                )
                 
-                if "label" in item:
-                    completion_item["completionText"] = item["label"]
-                    completion_item["kind"] = item["kind"]
-                elif "insertText" in item:
-                    completion_item["completionText"] = item["insertText"]
-                    completion_item["kind"] = item["kind"]
-                elif "textEdit" in item and "newText" in item["textEdit"]:
-                    completion_item["completionText"] = item["textEdit"]["newText"]
-                    completion_item["kind"] = item["kind"]
-                elif "textEdit" in item and "range" in item["textEdit"]:
-                    new_dot_lineno, new_dot_colno = (
-                        completion_params["position"]["line"],
-                        completion_params["position"]["character"],
-                    )
-                    assert all(
-                        (
-                            item["textEdit"]["range"]["start"]["line"] == new_dot_lineno,
-                            item["textEdit"]["range"]["start"]["character"] == new_dot_colno,
-                            item["textEdit"]["range"]["start"]["line"] == item["textEdit"]["range"]["end"]["line"],
-                            item["textEdit"]["range"]["start"]["character"]
-                            == item["textEdit"]["range"]["end"]["character"],
-                        )
-                    )
-                    
-                    completion_item["completionText"] = item["textEdit"]["newText"]
-                    completion_item["kind"] = item["kind"]
-                elif "textEdit" in item and "insert" in item["textEdit"]:
-                    assert False
-                else:
-                    assert False
+                completion_item["completionText"] = item["textEdit"]["newText"]
+                completion_item["kind"] = item["kind"]
+            elif "textEdit" in item and "insert" in item["textEdit"]:
+                assert False
+            else:
+                assert False
 
-                completion_item = multilspy_types.CompletionItem(**completion_item)
-                completions_list.append(completion_item)
+            completion_item = multilspy_types.CompletionItem(**completion_item)
+            completions_list.append(completion_item)
 
-            return [
-                json.loads(json_repr)
-                for json_repr in set([json.dumps(item, sort_keys=True) for item in completions_list])
-            ]
+        return [
+            json.loads(json_repr)
+            for json_repr in set([json.dumps(item, sort_keys=True) for item in completions_list])
+        ]
 
-    async def request_document_symbols(self, relative_file_path: str) -> Tuple[List[multilspy_types.UnifiedSymbolInformation], Union[List[multilspy_types.TreeRepr], None]]:
+    async def request_document_symbols(
+        self, relative_file_path: str, timeout: Optional[float] = None
+    ) -> Tuple[List[multilspy_types.UnifiedSymbolInformation], Union[List[multilspy_types.TreeRepr], None]]:
         """
         Raise a [textDocument/documentSymbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol) request to the Language Server
         to find symbols in the given file. Wait for the response and return the result.
 
         :param relative_file_path: The relative path of the file that has the symbols
+        :param timeout: Optional per-request timeout in seconds (defaults to config.request_timeout)
 
         :return Tuple[List[multilspy_types.UnifiedSymbolInformation], Union[List[multilspy_types.TreeRepr], None]]: A list of symbols in the file, and the tree representation of the symbols
         """
-        with self.open_file(relative_file_path):
-            response = await self.server.send.document_symbol(
-                {
-                    "textDocument": {
-                        "uri": pathlib.Path(os.path.join(self.repository_root_path, relative_file_path)).as_uri()
+        effective_timeout = timeout if timeout is not None else self.request_timeout
+
+        async def _execute():
+            with self.open_file(relative_file_path):
+                return await self.server.send.document_symbol(
+                    {
+                        "textDocument": {
+                            "uri": pathlib.Path(os.path.join(self.repository_root_path, relative_file_path)).as_uri()
+                        }
                     }
-                }
+                )
+
+        try:
+            if effective_timeout is not None and effective_timeout > 0:
+                response = await asyncio.wait_for(_execute(), timeout=effective_timeout)
+            else:
+                response = await _execute()
+        except (asyncio.TimeoutError, TimeoutError):
+            self.logger.log(
+                f"LSP request timed out: method='textDocument/documentSymbol', file='{relative_file_path}', timeout={effective_timeout}s",
+                logging.WARNING,
             )
+            self.check_process_health()
+            return [], None
         
         ret: List[multilspy_types.UnifiedSymbolInformation] = []
         l_tree = None
@@ -645,7 +759,9 @@ class LanguageServer:
 
         return ret, l_tree
     
-    async def request_hover(self, relative_file_path: str, line: int, column: int) -> Union[multilspy_types.Hover, None]:
+    async def request_hover(
+        self, relative_file_path: str, line: int, column: int, timeout: Optional[float] = None
+    ) -> Union[multilspy_types.Hover, None]:
         """
         Raise a [textDocument/hover](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover) request to the Language Server
         to find the hover information at the given line and column in the given file. Wait for the response and return the result.
@@ -653,21 +769,38 @@ class LanguageServer:
         :param relative_file_path: The relative path of the file that has the hover information
         :param line: The line number of the symbol
         :param column: The column number of the symbol
+        :param timeout: Optional per-request timeout in seconds (defaults to config.request_timeout)
 
         :return None
         """
-        with self.open_file(relative_file_path):
-            response = await self.server.send.hover(
-                {
-                    "textDocument": {
-                        "uri": pathlib.Path(os.path.join(self.repository_root_path, relative_file_path)).as_uri()
-                    },
-                    "position": {
-                        "line": line,
-                        "character": column,
-                    },
-                }
+        effective_timeout = timeout if timeout is not None else self.request_timeout
+
+        async def _execute():
+            with self.open_file(relative_file_path):
+                return await self.server.send.hover(
+                    {
+                        "textDocument": {
+                            "uri": pathlib.Path(os.path.join(self.repository_root_path, relative_file_path)).as_uri()
+                        },
+                        "position": {
+                            "line": line,
+                            "character": column,
+                        },
+                    }
+                )
+
+        try:
+            if effective_timeout is not None and effective_timeout > 0:
+                response = await asyncio.wait_for(_execute(), timeout=effective_timeout)
+            else:
+                response = await _execute()
+        except (asyncio.TimeoutError, TimeoutError):
+            self.logger.log(
+                f"LSP request timed out: method='textDocument/hover', file='{relative_file_path}', line={line}, column={column}, timeout={effective_timeout}s",
+                logging.WARNING,
             )
+            self.check_process_health()
+            return None
         
         if response is None:
             return None
@@ -676,16 +809,36 @@ class LanguageServer:
 
         return multilspy_types.Hover(**response)
 
-    async def request_workspace_symbol(self, query: str) -> Union[List[multilspy_types.UnifiedSymbolInformation], None]:
+    async def request_workspace_symbol(
+        self, query: str, timeout: Optional[float] = None
+    ) -> Union[List[multilspy_types.UnifiedSymbolInformation], None]:
         """
         Raise a [workspace/symbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbol) request to the Language Server
         to find symbols across the whole workspace. Wait for the response and return the result.
 
         :param query: The query string to filter symbols by
+        :param timeout: Optional per-request timeout in seconds (defaults to config.request_timeout)
 
         :return Union[List[multilspy_types.UnifiedSymbolInformation], None]: A list of matching symbols
         """
-        response = await self.server.send.workspace_symbol({"query": query})
+        effective_timeout = timeout if timeout is not None else self.request_timeout
+
+        async def _execute():
+            return await self.server.send.workspace_symbol({"query": query})
+
+        try:
+            if effective_timeout is not None and effective_timeout > 0:
+                response = await asyncio.wait_for(_execute(), timeout=effective_timeout)
+            else:
+                response = await _execute()
+        except (asyncio.TimeoutError, TimeoutError):
+            self.logger.log(
+                f"LSP request timed out: method='workspace/symbol', query='{query}', timeout={effective_timeout}s",
+                logging.WARNING,
+            )
+            self.check_process_health()
+            return None
+
         if response is None:
             return None
 
@@ -716,6 +869,18 @@ class SyncLanguageServer:
         self.loop = None
         self.loop_thread = None
         self.timeout = timeout
+
+    def is_process_alive(self) -> bool:
+        """
+        Check if the language server process is still running.
+        """
+        return self.language_server.is_process_alive()
+
+    def check_process_health(self) -> bool:
+        """
+        Verify whether the language server process is still alive and responsive.
+        """
+        return self.language_server.check_process_health()
 
     @classmethod
     def create(
@@ -848,7 +1013,9 @@ class SyncLanguageServer:
             self.loop_thread.join()
             self.loop.close()
 
-    def request_definition(self, file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
+    def request_definition(
+        self, file_path: str, line: int, column: int, timeout: Optional[float] = None
+    ) -> List[multilspy_types.Location]:
         """
         Raise a [textDocument/definition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition) request to the Language Server
         for the symbol at the given line and column in the given file. Wait for the response and return the result.
@@ -856,15 +1023,19 @@ class SyncLanguageServer:
         :param relative_file_path: The relative path of the file that has the symbol for which definition should be looked up
         :param line: The line number of the symbol
         :param column: The column number of the symbol
+        :param timeout: Optional per-request timeout in seconds
 
         :return List[multilspy_types.Location]: A list of locations where the symbol is defined
         """
+        req_timeout = timeout if timeout is not None else self.timeout
         result = asyncio.run_coroutine_threadsafe(
-            self.language_server.request_definition(file_path, line, column), self.loop
+            self.language_server.request_definition(file_path, line, column, timeout=req_timeout), self.loop
         ).result(timeout=self.timeout)
         return result
 
-    def request_references(self, file_path: str, line: int, column: int) -> List[multilspy_types.Location]:
+    def request_references(
+        self, file_path: str, line: int, column: int, timeout: Optional[float] = None
+    ) -> List[multilspy_types.Location]:
         """
         Raise a [textDocument/references](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_references) request to the Language Server
         to find references to the symbol at the given line and column in the given file. Wait for the response and return the result.
@@ -872,16 +1043,18 @@ class SyncLanguageServer:
         :param relative_file_path: The relative path of the file that has the symbol for which references should be looked up
         :param line: The line number of the symbol
         :param column: The column number of the symbol
+        :param timeout: Optional per-request timeout in seconds
 
         :return List[multilspy_types.Location]: A list of locations where the symbol is referenced
         """
+        req_timeout = timeout if timeout is not None else self.timeout
         result = asyncio.run_coroutine_threadsafe(
-            self.language_server.request_references(file_path, line, column), self.loop
+            self.language_server.request_references(file_path, line, column, timeout=req_timeout), self.loop
         ).result(timeout=self.timeout)
         return result
 
     def request_completions(
-        self, relative_file_path: str, line: int, column: int, allow_incomplete: bool = False
+        self, relative_file_path: str, line: int, column: int, allow_incomplete: bool = False, timeout: Optional[float] = None
     ) -> List[multilspy_types.CompletionItem]:
         """
         Raise a [textDocument/completion](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion) request to the Language Server
@@ -890,30 +1063,39 @@ class SyncLanguageServer:
         :param relative_file_path: The relative path of the file that has the symbol for which completions should be looked up
         :param line: The line number of the symbol
         :param column: The column number of the symbol
+        :param allow_incomplete: Whether to return incomplete completion list
+        :param timeout: Optional per-request timeout in seconds
 
         :return List[multilspy_types.CompletionItem]: A list of completions
         """
+        req_timeout = timeout if timeout is not None else self.timeout
         result = asyncio.run_coroutine_threadsafe(
-            self.language_server.request_completions(relative_file_path, line, column, allow_incomplete),
+            self.language_server.request_completions(relative_file_path, line, column, allow_incomplete, timeout=req_timeout),
             self.loop,
         ).result(timeout=self.timeout)
         return result
 
-    def request_document_symbols(self, relative_file_path: str) -> Tuple[List[multilspy_types.UnifiedSymbolInformation], Union[List[multilspy_types.TreeRepr], None]]:
+    def request_document_symbols(
+        self, relative_file_path: str, timeout: Optional[float] = None
+    ) -> Tuple[List[multilspy_types.UnifiedSymbolInformation], Union[List[multilspy_types.TreeRepr], None]]:
         """
         Raise a [textDocument/documentSymbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol) request to the Language Server
         to find symbols in the given file. Wait for the response and return the result.
 
         :param relative_file_path: The relative path of the file that has the symbols
+        :param timeout: Optional per-request timeout in seconds
 
         :return Tuple[List[multilspy_types.UnifiedSymbolInformation], Union[List[multilspy_types.TreeRepr], None]]: A list of symbols in the file, and the tree representation of the symbols
         """
+        req_timeout = timeout if timeout is not None else self.timeout
         result = asyncio.run_coroutine_threadsafe(
-            self.language_server.request_document_symbols(relative_file_path), self.loop
+            self.language_server.request_document_symbols(relative_file_path, timeout=req_timeout), self.loop
         ).result(timeout=self.timeout)
         return result
 
-    def request_hover(self, relative_file_path: str, line: int, column: int) -> Union[multilspy_types.Hover, None]:
+    def request_hover(
+        self, relative_file_path: str, line: int, column: int, timeout: Optional[float] = None
+    ) -> Union[multilspy_types.Hover, None]:
         """
         Raise a [textDocument/hover](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover) request to the Language Server
         to find the hover information at the given line and column in the given file. Wait for the response and return the result.
@@ -921,24 +1103,30 @@ class SyncLanguageServer:
         :param relative_file_path: The relative path of the file that has the hover information
         :param line: The line number of the symbol
         :param column: The column number of the symbol
+        :param timeout: Optional per-request timeout in seconds
 
         :return None
         """
+        req_timeout = timeout if timeout is not None else self.timeout
         result = asyncio.run_coroutine_threadsafe(
-            self.language_server.request_hover(relative_file_path, line, column), self.loop
+            self.language_server.request_hover(relative_file_path, line, column, timeout=req_timeout), self.loop
         ).result(timeout=self.timeout)
         return result
 
-    def request_workspace_symbol(self, query: str) -> Union[List[multilspy_types.UnifiedSymbolInformation], None]:
+    def request_workspace_symbol(
+        self, query: str, timeout: Optional[float] = None
+    ) -> Union[List[multilspy_types.UnifiedSymbolInformation], None]:
         """
         Raise a [workspace/symbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbol) request to the Language Server
         to find symbols across the whole workspace. Wait for the response and return the result.
 
         :param query: The query string to filter symbols by
+        :param timeout: Optional per-request timeout in seconds
 
         :return Union[List[multilspy_types.UnifiedSymbolInformation], None]: A list of matching symbols
         """
+        req_timeout = timeout if timeout is not None else self.timeout
         result = asyncio.run_coroutine_threadsafe(
-            self.language_server.request_workspace_symbol(query), self.loop
+            self.language_server.request_workspace_symbol(query, timeout=req_timeout), self.loop
         ).result(timeout=self.timeout)
         return result
