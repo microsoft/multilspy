@@ -256,3 +256,7 @@ class PlatformUtils:
             except (FileNotFoundError, subprocess.CalledProcessError):
                 raise MultilspyException("dotnet or mono not found on the system")
 
+
+# Re-export path classifier
+from multilspy.path_classifier import PathClassifier, PathClassification
+

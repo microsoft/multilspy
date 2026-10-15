@@ -1,0 +1,51 @@
+{
+    "_description": "This file contains the initialization parameters for the Lua Language Server.",
+    "processId": "$processId",
+    "rootPath": "$rootPath",
+    "rootUri": "$rootUri",
+    "capabilities": {
+        "workspace": {
+            "configuration": true,
+            "workspaceFolders": true
+        },
+        "textDocument": {
+            "synchronization": {
+                "dynamicRegistration": true,
+                "willSave": true,
+                "didSave": true
+            },
+            "completion": {
+                "dynamicRegistration": true,
+                "completionItem": {
+                    "snippetSupport": true
+                }
+            },
+            "definition": {
+                "dynamicRegistration": true,
+                "linkSupport": true
+            },
+            "references": {
+                "dynamicRegistration": true
+            },
+            "documentSymbol": {
+                "dynamicRegistration": true,
+                "hierarchicalDocumentSymbolSupport": true
+            },
+            "hover": {
+                "dynamicRegistration": true,
+                "contentFormat": ["markdown", "plaintext"]
+            }
+        },
+        "window": {
+            "workDoneProgress": true
+        }
+    },
+    "initializationOptions": {},
+    "trace": "verbose",
+    "workspaceFolders": [
+        {
+            "uri": "$uri",
+            "name": "$name"
+        }
+    ]
+}

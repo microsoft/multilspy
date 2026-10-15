@@ -1,0 +1,24 @@
+{
+    "_description": "Used to download the runtime dependencies for SourceKit-LSP. On Linux, the Swift toolchain is downloaded from swift.org. On macOS, sourcekit-lsp is discovered from the Xcode toolchain or swift.org toolchain install. See https://www.swift.org/install/ for details.",
+    "swiftVersion": "6.0.3",
+    "runtimeDependencies": [
+        {
+            "id": "SwiftToolchain",
+            "description": "Swift toolchain for Linux (x64, Ubuntu 22.04)",
+            "url": "https://download.swift.org/swift-6.0.3-release/ubuntu2204/swift-6.0.3-RELEASE/swift-6.0.3-RELEASE-ubuntu22.04.tar.gz",
+            "platformId": "linux-x64",
+            "archiveType": "gztar",
+            "toolchainPath": "swift-6.0.3-RELEASE-ubuntu22.04",
+            "binaryPath": "usr/bin/sourcekit-lsp"
+        },
+        {
+            "id": "SwiftToolchain",
+            "description": "Swift toolchain for Linux (arm64, Ubuntu 22.04)",
+            "url": "https://download.swift.org/swift-6.0.3-release/ubuntu2204-aarch64/swift-6.0.3-RELEASE/swift-6.0.3-RELEASE-ubuntu22.04-aarch64.tar.gz",
+            "platformId": "linux-arm64",
+            "archiveType": "gztar",
+            "toolchainPath": "swift-6.0.3-RELEASE-ubuntu22.04-aarch64",
+            "binaryPath": "usr/bin/sourcekit-lsp"
+        }
+    ]
+}

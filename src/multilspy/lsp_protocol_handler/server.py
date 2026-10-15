@@ -50,8 +50,8 @@ class ProcessLaunchInfo:
     This class is used to store the information required to launch a process.
     """
 
-    # The command to launch the process as a list of arguments (no shell involved)
-    cmd: List[str]
+    # The command to launch the process (either as a shell command string or a list of arguments)
+    cmd: Union[str, List[str]]
 
     # The environment variables to set for the process
     env: Dict[str, str] = dataclasses.field(default_factory=dict)
@@ -207,6 +207,14 @@ class LanguageServerHandler:
         self.loop = None
         self.start_independent_lsp_process = start_independent_lsp_process
 
+    def is_alive(self) -> bool:
+        """
+        Check if the language server process is still running.
+        """
+        if self.process is None:
+            return False
+        return self.process.returncode is None
+
     async def start(self) -> None:
         """
         Starts the language server process and creates a task to continuously read from its stdout to handle communications
@@ -214,15 +222,26 @@ class LanguageServerHandler:
         """
         child_proc_env = os.environ.copy()
         child_proc_env.update(self.process_launch_info.env)
-        self.process = await asyncio.create_subprocess_exec(
-            *self.process_launch_info.cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stdin=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=child_proc_env,
-            cwd=self.process_launch_info.cwd,
-            start_new_session=self.start_independent_lsp_process,
-        )
+        if isinstance(self.process_launch_info.cmd, list):
+            self.process = await asyncio.create_subprocess_exec(
+                *self.process_launch_info.cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stdin=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=child_proc_env,
+                cwd=self.process_launch_info.cwd,
+                start_new_session=self.start_independent_lsp_process,
+            )
+        else:
+            self.process = await asyncio.create_subprocess_shell(
+                self.process_launch_info.cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stdin=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=child_proc_env,
+                cwd=self.process_launch_info.cwd,
+                start_new_session=self.start_independent_lsp_process,
+            )
 
         self.loop = asyncio.get_event_loop()
         self.tasks[self.task_counter] = self.loop.create_task(self.run_forever())
@@ -475,9 +494,19 @@ class LanguageServerHandler:
         request_id = self.request_id
         self.request_id += 1
         self._response_handlers[request_id] = request
-        async with request.cv:
-            await self._send_payload(make_request(method, request_id, params))
-            await request.cv.wait()
+        try:
+            async with request.cv:
+                await self._send_payload(make_request(method, request_id, params))
+                await request.cv.wait()
+        except asyncio.CancelledError:
+            # If the request is cancelled (e.g. timeout via asyncio.wait_for), notify server
+            try:
+                self.notify.cancel_request({"id": request_id})
+            except Exception:
+                pass
+            raise
+        finally:
+            self._response_handlers.pop(request_id, None)
         if isinstance(request.error, Error):
             raise request.error
         return request.result
@@ -521,7 +550,10 @@ class LanguageServerHandler:
         """
         Handle the response received from the server for a request, using the id to determine the request
         """
-        request = self._response_handlers.pop(response["id"])
+        request = self._response_handlers.pop(response.get("id"), None)
+        if request is None:
+            self._log(f"Received response for unknown or timed-out request id: {response.get('id')}")
+            return
         if "result" in response and "error" not in response:
             await request.on_result(response["result"])
         elif "result" not in response and "error" in response:
