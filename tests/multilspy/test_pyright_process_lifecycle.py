@@ -5,6 +5,7 @@ local disposable Python script, never install or discover Pyright.
 """
 
 import asyncio
+import os
 import sys
 
 import pytest
@@ -72,6 +73,7 @@ async def test_real_initialize_timeout_stops_process_and_readers(
         assert created[0].returncode is not None
         assert handler.process is None
         assert handler.tasks == {}
+        assert not handler._response_handlers
         assert not server.server_started
     finally:
         for process in created:
@@ -100,6 +102,7 @@ async def test_real_cancelled_initialize_stops_process_and_readers(
         assert created[0].returncode is not None
         assert handler.process is None
         assert handler.tasks == {}
+        assert not handler._response_handlers
         assert not server.server_started
     finally:
         if not pending.done():
@@ -109,3 +112,58 @@ async def test_real_cancelled_initialize_stops_process_and_readers(
             if process.returncode is None:
                 process.kill()
                 await process.wait()
+
+
+@pytest.mark.asyncio
+async def test_real_pyright_restarts_after_abandoned_request(tmp_path):
+    binary = os.environ.get("MULTILSPY_PYRIGHT_TEST_BINARY")
+    if not binary:
+        pytest.skip("Real pinned Pyright is not configured")
+
+    (tmp_path / "sample.py").write_text(
+        "value = 42\nresult = value\n", encoding="utf-8"
+    )
+    server = LanguageServer.create(
+        MultilspyConfig(
+            code_language=Language.PYTHON,
+            python_server="pyright", server_binary=binary,
+        ),
+        MultilspyLogger(), str(tmp_path.resolve()),
+    )
+    seen_ids = []
+    for _ in range(2):
+        async with server.start_server():
+            handler = server.server
+            original_send = handler._send_payload
+
+            async def unanswered(payload):
+                # Pyright may concurrently send workspace/configuration
+                # requests. Their client responses must keep flowing; only
+                # silence this *one* outgoing definition request.
+                if payload.get("method") == "textDocument/definition":
+                    return None
+                return await original_send(payload)
+
+            handler._send_payload = unanswered
+            try:
+                with pytest.raises(asyncio.TimeoutError):
+                    await asyncio.wait_for(
+                        handler.send_request("textDocument/definition", {}), 0.05
+                    )
+            finally:
+                handler._send_payload = original_send
+            assert handler._response_handlers == {}
+            seen_ids.append(handler.request_id - 1)
+            with server.open_file("sample.py"):
+                definition = await asyncio.wait_for(
+                    server.request_definition("sample.py", 1, 10), 8
+                )
+                assert len(definition) == 1
+                assert definition[0]["relativePath"] == "sample.py"
+                assert definition[0]["range"]["start"] == {
+                    "line": 0, "character": 0,
+                }
+        assert handler._response_handlers == {}
+        assert handler.process is None
+        assert handler.tasks == {}
+    assert seen_ids[1] > seen_ids[0]
