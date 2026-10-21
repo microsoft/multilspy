@@ -608,9 +608,13 @@ class LanguageServer:
                 completion_item = multilspy_types.CompletionItem(**completion_item)
                 completions_list.append(completion_item)
 
+            # Preserve the server's completion ranking while deduplicating.
+            # Iterating over a set makes suggestions reorder across processes.
             return [
                 json.loads(json_repr)
-                for json_repr in set([json.dumps(item, sort_keys=True) for item in completions_list])
+                for json_repr in dict.fromkeys(
+                    json.dumps(item, sort_keys=True) for item in completions_list
+                )
             ]
 
     async def request_document_symbols(self, relative_file_path: str) -> Tuple[List[multilspy_types.UnifiedSymbolInformation], Union[List[multilspy_types.TreeRepr], None]]:

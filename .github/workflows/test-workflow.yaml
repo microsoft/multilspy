@@ -89,5 +89,12 @@ jobs:
         pip install -r requirements.txt
         pip install -e .
 
+    - name: Install pinned Pyright for real integration tests
+      run: |
+        npm install --prefix "$RUNNER_TEMP/multilspy-pyright" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund pyright@1.1.413
+        PYRIGHT_BIN="$RUNNER_TEMP/multilspy-pyright/node_modules/.bin/pyright-langserver"
+        test -x "$PYRIGHT_BIN"
+        echo "MULTILSPY_PYRIGHT_TEST_BINARY=$PYRIGHT_BIN" >> "$GITHUB_ENV"
+
     - name: Run tests
       run: pytest tests/multilspy -v --tb=short

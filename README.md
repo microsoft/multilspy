@@ -92,17 +92,29 @@ and how multilspy exposes it:
 | completion (`isIncomplete` retries), completionItem/resolve | `request_completions`; resolve through `server.send.resolve_completion_item` | tested against Pyright |
 | declaration, typeDefinition, documentHighlight, signatureHelp, call hierarchy (incoming and outgoing) | `server.send.*` low-level requests | tested against Pyright |
 | prepareRename, rename | `server.send.*`; the response is a WorkspaceEdit proposal, multilspy never applies it | proposal shape tested |
-| codeAction (quickfix, source.organizeImports) | `server.send.code_action`; the only quick fix in 1.1.413 is "create type stub" for third-party packages without stubs, and organize imports is a command, not a code action | empty result tested; no quick-fix corpus |
-| publishDiagnostics (typeCheckingMode off/basic/standard/strict) | `next_diagnostics()` bounded queue | tested against Pyright |
+| codeAction (quickfix, source.organizeImports) | `server.send.code_action`; available fixes depend on project diagnostics and may propose file edits, including type-stub generation or renames; organize imports uses a command | empty-response fixture tested; no writable quick-fix corpus |
+| publishDiagnostics (typeCheckingMode off/basic/standard/strict) | asynchronous `PyrightServer.next_diagnostics()` bounded queue (not exposed by `SyncLanguageServer`) | tested against Pyright |
 | workspace/configuration, workspace/applyEdit, client/registerCapability | answered by the adapter: fixed read-only settings, edits refused, registration acknowledged and ignored | tested with fixtures and against Pyright |
 | executeCommand | advertised with an empty command list; `pyright.organizeimports` is disabled by the adapter settings, `pyright.createtypestub` writes files and is not supported | refusal of the server's applyEdit tested |
-| implementation, pull diagnostics, semantic tokens, inlay hints, folding, selection ranges, document links, formatting, code lens | not advertised by Pyright 1.1.413; requests fail with MethodNotFound | unsupported |
+| implementation, pull diagnostics, semantic tokens, inlay hints, folding, selection ranges, document links, formatting, code lens | not advertised to the current client capability profile by Pyright 1.1.413; requests fail with MethodNotFound | unsupported in this profile |
 
 Real Pyright integration tests require a preinstalled language server. Set
 MULTILSPY_PYRIGHT_TEST_BINARY to its absolute executable path before running
 pytest on tests/multilspy/test_multilspy_pyright.py. Without this variable
-the real-server tests skip; mock/fixture coverage still runs offline.
-This keeps the normal test suite independent of automatic Pyright downloads.
+the real-server tests skip; if it is set to a missing/non-executable binary,
+the tests fail. The GitHub Actions test workflow installs pinned Pyright
+1.1.413 and exercises the real provider on every Python test matrix entry.
+Other local unit/fixture tests still run without installing Pyright.
+Exact-protocol fixtures and capabilities are version-pinned; when upgrading
+Pyright, update and revalidate the expected responses rather than silently
+skipping mismatched versions. For third-party import resolution, configure the
+project through `pyrightconfig.json` or `[tool.pyright]` in `pyproject.toml`.
+
+The adapter rejects server-initiated workspace edits, but this is not an OS
+sandbox. The low-level `server.send` API permits raw executeCommand requests,
+including commands that may write files directly; clients should not expose
+those requests to untrusted callers. Enforce workspace and subprocess
+permissions outside multilspy when building an agent-facing integration.
 
 ## Usage
 Example usage:

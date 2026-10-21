@@ -26,6 +26,7 @@
       "hover": {"contentFormat": ["markdown", "plaintext"]},
       "completion": {
         "dynamicRegistration": false,
+        "contextSupport": true,
         "completionItem": {
           "snippetSupport": false,
           "documentationFormat": ["plaintext"]

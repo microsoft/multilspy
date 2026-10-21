@@ -23,49 +23,57 @@ class TextUtils:
     Utilities for text operations.
     """
     @staticmethod
-    def get_line_col_from_index(text: str, index: int) -> Tuple[int, int]:
-        """
-        Returns the zero-indexed line and column number of the given index in the given text
-        """
-        l = 0
-        c = 0
-        idx = 0
-        while idx < index:
-            if text[idx] == '\n':
-                l += 1
-                c = 0
-            else:
-                c += 1
-            idx += 1
+    def _utf16_length(text: str) -> int:
+        """LSP positions count UTF-16 code units, not Python code points."""
+        return sum(2 if ord(character) > 0xFFFF else 1 for character in text)
 
-        return l, c
-    
+    @staticmethod
+    def get_line_col_from_index(text: str, index: int) -> Tuple[int, int]:
+        """Return a zero-based line and UTF-16 column for a Python text index."""
+        line = 0
+        column = 0
+        for character in text[:index]:
+            if character == "\n":
+                line += 1
+                column = 0
+            else:
+                column += 2 if ord(character) > 0xFFFF else 1
+        return line, column
+
     @staticmethod
     def get_index_from_line_col(text: str, line: int, col: int) -> int:
-        """
-        Returns the index of the given zero-indexed line and column number in the given text
-        """
+        """Translate a zero-based LSP UTF-16 position into a Python text index."""
+        if line < 0 or col < 0:
+            raise ValueError("LSP line and column must be non-negative")
         idx = 0
         while line > 0:
-            assert idx < len(text), (idx, len(text), text)
+            if idx >= len(text):
+                raise ValueError("LSP line is outside the document")
             if text[idx] == "\n":
                 line -= 1
             idx += 1
-        idx += col
+        while col > 0:
+            if idx >= len(text) or text[idx] == "\n":
+                raise ValueError("LSP column is outside the line")
+            units = 2 if ord(text[idx]) > 0xFFFF else 1
+            if col < units:
+                raise ValueError("LSP column splits a UTF-16 surrogate pair")
+            idx += 1
+            col -= units
         return idx
-    
+
     @staticmethod
-    def get_updated_position_from_line_and_column_and_edit(l: int, c: int, text_to_be_inserted: str) -> Tuple[int, int]:
-        """
-        Utility function to get the position of the cursor after inserting text at a given line and column.
-        """
-        num_newlines_in_gen_text = text_to_be_inserted.count('\n')
+    def get_updated_position_from_line_and_column_and_edit(l: int, c: int, text_to_be_inserted: str) -> Tuple[int, int]:  # noqa: E741
+        """Return the LSP UTF-16 cursor position after inserting text."""
+        # Preserve existing named arguments `l` and `c` for API compatibility.
+        line, column = l, c
+        num_newlines_in_gen_text = text_to_be_inserted.count("\n")
         if num_newlines_in_gen_text > 0:
-            l += num_newlines_in_gen_text
-            c = len(text_to_be_inserted.split('\n')[-1])
+            line += num_newlines_in_gen_text
+            column = TextUtils._utf16_length(text_to_be_inserted.split("\n")[-1])
         else:
-            c += len(text_to_be_inserted)
-        return (l, c)
+            column += TextUtils._utf16_length(text_to_be_inserted)
+        return line, column
 
 class PathUtils:
     """

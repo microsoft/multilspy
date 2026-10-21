@@ -74,3 +74,20 @@ async def test_retry_incomplete_completions_uses_protocol_trigger(server):
     assert result == EXPECTED
     assert seen == [1, 3, 3]
     assert not server.open_file_buffers
+
+
+@pytest.mark.asyncio
+async def test_completion_deduplication_preserves_server_ranking(server):
+    # Duplicates must not scramble server ordering (e.g. with randomized hash
+    # seeds); rank order is meaningful for editors and coding agents.
+    candidates = [
+        {"label": "zeta", "kind": 6},
+        {"label": "alpha", "kind": 6},
+        {"label": "zeta", "kind": 6},
+        {"label": "beta", "kind": 6},
+    ]
+    server.server.send.completion = AsyncMock(return_value=candidates)
+    suggestions = await server.request_completions("example.py", 0, 0)
+    assert [item["completionText"] for item in suggestions] == ["zeta", "alpha", "beta"]
+    assert server.server.send.completion.await_count == 1
+    assert not server.open_file_buffers

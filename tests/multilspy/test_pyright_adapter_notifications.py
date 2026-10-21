@@ -14,6 +14,7 @@ from multilspy.language_servers.pyright_language_server.pyright_server import (
     PyrightServer,
 )
 from multilspy.multilspy_config import Language, MultilspyConfig
+from multilspy.multilspy_exceptions import MultilspyException
 from multilspy.multilspy_logger import MultilspyLogger
 
 
@@ -42,6 +43,9 @@ def pyright(tmp_path):
                 "definitionProvider": True,
                 "referencesProvider": True,
                 "hoverProvider": True,
+                "completionProvider": True,
+                "documentSymbolProvider": True,
+                "workspaceSymbolProvider": True,
                 "textDocumentSync": 2,
             }
         }
@@ -67,7 +71,7 @@ def test_pyright_initialize_params_are_loaded_from_profile(tmp_path):
     assert params["capabilities"]["general"]["positionEncodings"] == ["utf-16"]
     assert params["capabilities"]["workspace"]["applyEdit"] is False
     assert params["capabilities"]["workspace"]["configuration"] is True
-    assert params["capabilities"]["textDocument"]["completion"]
+    assert params["capabilities"]["textDocument"]["completion"]["contextSupport"] is True
     assert params["capabilities"]["textDocument"]["signatureHelp"]
 
 
@@ -99,6 +103,9 @@ async def test_pyright_accepts_empty_capability_options(pyright):
             "definitionProvider": {},
             "referencesProvider": {},
             "hoverProvider": {},
+            "completionProvider": {},
+            "documentSymbolProvider": {},
+            "workspaceSymbolProvider": {},
             "positionEncoding": "utf-16",
         }
     }
@@ -118,17 +125,19 @@ async def test_pyright_configuration_is_explicit_and_bounded(pyright):
             {
                 "items": [
                     {"section": "python"},
+                    {"section": "python.analysis"},
                     {"section": "pyright"},
                     {"section": "untrusted"},
                 ]
             }
         )
         assert result[0] == {"analysis": {}}
-        assert result[1]["disableLanguageServices"] is False
-        assert result[2] is None
+        assert result[1] == {}
+        assert result[2]["disableLanguageServices"] is False
+        assert result[3] is None
         assert await handler({"items": []}) == []
         assert await handler({"items": "bad"}) == []
-        assert await handler({"items": [{}] * 65}) == []
+        assert await handler({"items": [{}] * 65}) == [None] * 65
         assert await handler(None) == []
 
 
@@ -172,8 +181,8 @@ async def test_pyright_diagnostics_are_queued_not_dropped_silently(pyright):
             }
         )
         assert server.diagnostics_dropped is True
-        assert (await server.next_diagnostics(timeout=1))["version"] == 0
-        assert (await server.next_diagnostics(timeout=1))["version"] == 1
+        updates = [await server.next_diagnostics(timeout=1) for _ in range(64)]
+        assert [item["version"] for item in updates] == list(range(1, 64)) + [65]
 
 
 @pytest.mark.asyncio
@@ -184,10 +193,17 @@ async def test_pyright_diagnostics_are_queued_not_dropped_silently(pyright):
         ([], TypeError, "Invalid Pyright"),
         ({}, ValueError, "Pyright missing required capability"),
         (
+            {"definitionProvider": True, "referencesProvider": True, "hoverProvider": True},
+            ValueError, "Pyright missing required capability: completionProvider",
+        ),
+        (
             {
                 "definitionProvider": True,
                 "referencesProvider": True,
                 "hoverProvider": True,
+                "completionProvider": True,
+                "documentSymbolProvider": True,
+                "workspaceSymbolProvider": True,
                 "positionEncoding": "utf-8",
             },
             ValueError,
@@ -265,4 +281,66 @@ async def test_cancelled_initialize_still_stops_process(pyright):
         await task
     transport.stop.assert_awaited_once()
     transport.shutdown.assert_not_awaited()
+    assert not server.server_started
+
+
+@pytest.mark.asyncio
+async def test_pyright_restarting_instance_resets_session_state(pyright):
+    server, transport, _, notifications = pyright
+    async with server.start_server():
+        await notifications["textDocument/publishDiagnostics"](
+            {"uri": "file:///old-session.py", "diagnostics": [{"message": "stale"}]}
+        )
+        server.diagnostics_dropped = True
+        assert server.diagnostics.qsize() == 1
+        assert server.completions_available.is_set()
+
+    async def initialize_again(_params):
+        # Completion readiness and the diagnostics queue belong to this run.
+        assert not server.completions_available.is_set()
+        assert server.diagnostics.empty()
+        assert not server.diagnostics_dropped
+        return {"capabilities": {
+            "definitionProvider": True,
+            "referencesProvider": True,
+            "hoverProvider": True,
+            "completionProvider": True,
+            "documentSymbolProvider": True,
+            "workspaceSymbolProvider": True,
+        }}
+
+    transport.send.initialize.side_effect = initialize_again
+    async with server.start_server():
+        assert server.diagnostics.empty()
+        assert server.completions_available.is_set()
+        assert not server.diagnostics_dropped
+    assert transport.start.await_count == 2
+    assert transport.stop.await_count == 2
+    assert transport.shutdown.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_pyright_does_not_allow_nested_server_lifetimes(pyright):
+    server, transport, _, _ = pyright
+    async with server.start_server():
+        with pytest.raises(MultilspyException, match="already started"):
+            async with server.start_server():
+                pytest.fail("Nested start must fail before altering the running server")
+        assert server.server_started
+        assert transport.stop.await_count == 0
+    transport.shutdown.assert_awaited_once()
+    transport.stop.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_unresponsive_shutdown_cannot_block_pyright_cleanup(pyright):
+    server, transport, _, _ = pyright
+    server._shutdown_timeout_seconds = 0.05
+    waiting_forever = asyncio.Event()
+    transport.shutdown.side_effect = waiting_forever.wait
+    with pytest.raises(asyncio.TimeoutError):
+        async with server.start_server():
+            assert server.server_started
+    transport.shutdown.assert_awaited_once()
+    transport.stop.assert_awaited_once()
     assert not server.server_started

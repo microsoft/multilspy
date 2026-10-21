@@ -8,12 +8,14 @@ import json
 import logging
 import os
 import pathlib
+import shutil
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from multilspy.language_server import LanguageServer
 from multilspy.lsp_protocol_handler.lsp_types import InitializeParams
 from multilspy.lsp_protocol_handler.server import ProcessLaunchInfo
+from multilspy.multilspy_exceptions import MultilspyException
 from multilspy.multilspy_config import MultilspyConfig
 from multilspy.multilspy_logger import MultilspyLogger
 
@@ -29,14 +31,20 @@ class PyrightServer(LanguageServer):
         """
         Creates a PyrightServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
+        executable = config.server_binary or "pyright-langserver"
+        # npm exposes .cmd shims on Windows; resolve through PATHEXT before
+        # passing the executable to subprocess (which runs without a shell).
+        if os.name == "nt":
+            executable = shutil.which(executable) or executable
         super().__init__(
             config,
             logger,
             repository_root_path,
-            ProcessLaunchInfo(cmd=[config.server_binary or "pyright-langserver", "--stdio"], cwd=repository_root_path),
+            ProcessLaunchInfo(cmd=[executable, "--stdio"], cwd=repository_root_path),
             "python",
         )
         self._initialize_timeout_seconds = 30
+        self._shutdown_timeout_seconds = 10
         # Pyright pushes textDocument/publishDiagnostics asynchronously. Keep a
         # bounded queue so callers can read them without unbounded growth.
         self.diagnostics: asyncio.Queue = asyncio.Queue(maxsize=64)
@@ -87,6 +95,8 @@ class PyrightServer(LanguageServer):
         # LanguageServer has been shutdown
         ```
         """
+        if self.server_started:
+            raise MultilspyException("Pyright language server is already started")
 
         async def workspace_configuration(params):
             # Pyright asks for the "python", "python.analysis" and "pyright"
@@ -95,10 +105,14 @@ class PyrightServer(LanguageServer):
             if not isinstance(params, dict):
                 return []
             items = params.get("items")
-            if not isinstance(items, list) or len(items) > 64:
+            if not isinstance(items, list):
                 return []
+            if len(items) > 64:
+                # LSP requires one response per requested configuration item.
+                return [None] * len(items)
             settings = {
                 "python": {"analysis": {}},
+                "python.analysis": {},
                 "pyright": {
                     "disableLanguageServices": False,
                     "disableOrganizeImports": True,
@@ -118,8 +132,10 @@ class PyrightServer(LanguageServer):
             if not isinstance(params, dict) or not isinstance(params.get("uri"), str):
                 return
             if self.diagnostics.full():
+                # Keep the newest diagnostic state rather than permanently
+                # losing updates when the consumer falls behind.
                 self.diagnostics_dropped = True
-                return
+                self.diagnostics.get_nowait()
             self.diagnostics.put_nowait(params)
 
         async def do_nothing(params):
@@ -134,6 +150,12 @@ class PyrightServer(LanguageServer):
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", publish_diagnostics)
+
+        # A LanguageServer instance may be started more than once. Old progress
+        # and diagnostics must never be delivered to the next server session.
+        self.completions_available.clear()
+        self.diagnostics = asyncio.Queue(maxsize=64)
+        self.diagnostics_dropped = False
 
         async with super().start_server():
             self.logger.log("Starting pyright-langserver server process", logging.INFO)
@@ -156,7 +178,14 @@ class PyrightServer(LanguageServer):
                 # multilspy sends UTF-16 positions, the LSP default.
                 if capabilities.get("positionEncoding", "utf-16") != "utf-16":
                     raise ValueError("Unsupported Pyright position encoding")
-                for required in ("definitionProvider", "referencesProvider", "hoverProvider"):
+                for required in (
+                    "definitionProvider",
+                    "referencesProvider",
+                    "hoverProvider",
+                    "completionProvider",
+                    "documentSymbolProvider",
+                    "workspaceSymbolProvider",
+                ):
                     capability = capabilities.get(required)
                     if capability is not True and not isinstance(capability, dict):
                         raise ValueError(f"Pyright missing required capability: {required}")
@@ -168,6 +197,8 @@ class PyrightServer(LanguageServer):
                     yield self
                 finally:
                     if initialized:
-                        await self.server.shutdown()
+                        await asyncio.wait_for(
+                            self.server.shutdown(), timeout=self._shutdown_timeout_seconds
+                        )
             finally:
                 await self.server.stop()

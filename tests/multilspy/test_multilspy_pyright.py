@@ -113,14 +113,15 @@ def _pyright_version(language_server_binary):
     also carries the version in its package.json next to the resolved script.
     """
     binary = Path(language_server_binary)
-    sibling = binary.with_name("pyright")
-    if sibling.is_file():
-        completed = subprocess.run(
-            [str(sibling), "--version"], capture_output=True, text=True, timeout=60, check=False
-        )
-        match = re.search(r"pyright (\d+)\.(\d+)\.(\d+)", completed.stdout + completed.stderr)
-        if completed.returncode == 0 and match:
-            return tuple(int(part) for part in match.groups())
+    for name in ("pyright", "pyright.cmd", "pyright.exe"):
+        sibling = binary.with_name(name)
+        if sibling.is_file():
+            completed = subprocess.run(
+                [str(sibling), "--version"], capture_output=True, text=True, timeout=60, check=False
+            )
+            match = re.search(r"pyright (\d+)\.(\d+)\.(\d+)", completed.stdout + completed.stderr)
+            if completed.returncode == 0 and match:
+                return tuple(int(part) for part in match.groups())
     package_json = binary.resolve().parent / "package.json"
     if package_json.is_file():
         version = json.loads(package_json.read_text(encoding="utf-8")).get("version", "")
@@ -167,7 +168,9 @@ def pyright_binary():
         pytest.skip("Set MULTILSPY_PYRIGHT_TEST_BINARY to a preinstalled executable")
     binary = Path(provided)
     if not binary.is_absolute() or not binary.is_file():
-        pytest.skip("The explicit Pyright executable is unavailable")
+        pytest.fail("MULTILSPY_PYRIGHT_TEST_BINARY must be an existing absolute file")
+    if os.name != "nt" and not os.access(binary, os.X_OK):
+        pytest.fail("MULTILSPY_PYRIGHT_TEST_BINARY must be executable")
     return str(binary)
 
 
@@ -331,9 +334,12 @@ async def test_real_pyright_definition_references_hover_and_symbols(
             assert definition[0]["relativePath"] == "lib.py"
             assert definition[0]["range"] == _range(0, 4, 0, 9)
 
-            references = await asyncio.wait_for(
-                server.request_references("lib.py", 0, 5), timeout=8
-            )
+            # Keep the import and definition open to avoid relying on when
+            # background workspace indexing completes on a cold runner.
+            with server.open_file("app.py"), server.open_file("lib.py"):
+                references = await asyncio.wait_for(
+                    server.request_references("lib.py", 0, 5), timeout=8
+                )
             assert [(item["relativePath"], item["range"]) for item in references] == [
                 ("app.py", _range(0, 16, 0, 21)),
                 ("app.py", _range(2, 8, 2, 13)),
@@ -410,9 +416,10 @@ async def test_real_pyright_high_level_api_on_classes_across_files(
             ]
 
             # References exclude the declaration (multilspy sends includeDeclaration=false).
-            references = await asyncio.wait_for(
-                server.request_references("shapes.py", 17, 6), timeout=8
-            )
+            with server.open_file("shapes.py"), server.open_file("report.py"):
+                references = await asyncio.wait_for(
+                    server.request_references("shapes.py", 17, 6), timeout=8
+                )
             assert [(item["relativePath"], item["range"]) for item in references] == [
                 ("report.py", _range(2, 26, 2, 32)),
                 ("report.py", _range(5, 11, 5, 17)),
@@ -867,15 +874,25 @@ async def test_real_pyright_type_checking_mode_controls_push_diagnostics(
     async def exercise():
         async with server.start_server():
             with server.open_file("invalid.py"):
-                # Pyright publishes once per open file, also when the list is empty.
+                # Pyright can publish an initial empty snapshot and then a
+                # complete analysis. Observe until the expected diagnostic
+                # state appears, with an explicit finite deadline.
                 loop = asyncio.get_running_loop()
                 deadline = loop.time() + 18
-                while True:
-                    notification = await server.next_diagnostics(
-                        timeout=max(0.01, deadline - loop.time())
-                    )
-                    if notification["uri"] == source.as_uri():
-                        return notification["diagnostics"]
+                observed = None
+                while loop.time() < deadline:
+                    try:
+                        notification = await server.next_diagnostics(
+                            timeout=min(2, max(0.01, deadline - loop.time()))
+                        )
+                    except asyncio.TimeoutError:
+                        continue
+                    if notification.get("uri") != source.as_uri():
+                        continue
+                    observed = notification.get("diagnostics", [])
+                    if {item.get("code") for item in observed} == expected_codes:
+                        return observed
+                pytest.fail(f"Expected diagnostics {expected_codes!r}; last received: {observed!r}")
 
     diagnostics = await asyncio.wait_for(exercise(), timeout=30)
     assert {entry["code"] for entry in diagnostics} == expected_codes
@@ -919,3 +936,122 @@ def test_real_pyright_sync_api_works_and_closes_provider(
     assert sync.language_server.server.process is None
     assert sync.loop.is_closed()
     assert not sync.loop_thread.is_alive()
+
+
+def test_invalid_explicit_pyright_binary_fails_instead_of_skipping(
+    request, monkeypatch, tmp_path
+):
+    # A broken CI installation or an incorrectly set env var must fail visibly,
+    # not turn all real Pyright tests green by skipping them.
+    monkeypatch.setenv("MULTILSPY_PYRIGHT_TEST_BINARY", str(tmp_path / "not-installed"))
+    with pytest.raises(pytest.fail.Exception, match="existing absolute file"):
+        request.getfixturevalue("pyright_binary")
+
+
+@pytest.mark.asyncio
+async def test_real_pyright_unicode_workspace_and_restart(tmp_path, pyright_binary):
+    # Spaces, non-ASCII names and non-BMP characters must survive URI encoding
+    # and reuse of a LanguageServer instance must not replay old notifications.
+    root = tmp_path / "Python project 中文 🐍"
+    root.mkdir()
+    (root / "functions.py").write_text(
+        "def greet(name: str) -> str:\n    return name.upper()\n", encoding="utf-8"
+    )
+    (root / "caller.py").write_text(
+        "from functions import greet\nresult = greet('Ada')\n", encoding="utf-8"
+    )
+    server = LanguageServer.create(
+        MultilspyConfig(
+            code_language=Language.PYTHON,
+            python_server="pyright",
+            server_binary=pyright_binary,
+        ),
+        MultilspyLogger(),
+        str(root),
+    )
+    params = server._get_initialize_params(str(root))
+    assert params["rootUri"] == root.as_uri()
+    assert params["workspaceFolders"][0]["uri"] == root.as_uri()
+
+    for attempt in range(2):
+        previous_queue = server.diagnostics
+        if attempt:
+            previous_queue.put_nowait({"uri": "file:///old-session.py"})
+            server.diagnostics_dropped = True
+        async with server.start_server():
+            assert server.diagnostics is not previous_queue
+            assert not server.diagnostics_dropped
+            definition = await asyncio.wait_for(
+                server.request_definition("caller.py", 1, 10), timeout=8
+            )
+            assert [(item["relativePath"], item["range"]) for item in definition] == [
+                ("functions.py", _range(0, 4, 0, 9))
+            ]
+        assert server.server.process is None
+        assert not server.server_started
+
+
+@pytest.mark.asyncio
+async def test_real_pyright_incremental_edits_use_utf16_columns(
+    python_project, create_pyright
+):
+    """Local buffer and Pyright must agree on didChange after an astral symbol."""
+    source = python_project / "emoji.py"
+    original = source.read_bytes()
+    server = create_pyright()
+    async with server.start_server():
+        with server.open_file("emoji.py"):
+            before = await asyncio.wait_for(server.request_definition("emoji.py", 0, 14), 8)
+            assert [(item["relativePath"], item["range"]) for item in before] == [
+                ("emoji.py", _range(0, 0, 0, 1))
+            ]
+            # `x` after the emoji starts at UTF-16 column 14, not codepoint 13.
+            cursor = server.insert_text_at_position("emoji.py", 0, 14, "missing_")
+            assert cursor == {"line": 0, "character": 22}
+            assert server.get_open_file_text("emoji.py") == "x = '😀'; y = missing_x\n"
+            for _ in range(20):
+                changed = await asyncio.wait_for(
+                    server.request_definition("emoji.py", 0, 18), timeout=8
+                )
+                if not changed:
+                    break
+                await asyncio.sleep(0.1)
+            assert changed == []
+
+            assert server.delete_text_between_positions(
+                "emoji.py", {"line": 0, "character": 14},
+                {"line": 0, "character": 22},
+            ) == "missing_"
+            assert server.get_open_file_text("emoji.py").encode("utf-8") == original
+            for _ in range(20):
+                restored = await asyncio.wait_for(
+                    server.request_definition("emoji.py", 0, 14), timeout=8
+                )
+                if restored:
+                    break
+                await asyncio.sleep(0.1)
+            assert [(item["relativePath"], item["range"]) for item in restored] == [
+                ("emoji.py", _range(0, 0, 0, 1))
+            ]
+    assert source.read_bytes() == original
+    assert server.server.process is None
+
+
+@pytest.mark.parametrize("extension", ["", ".cmd", ".exe"])
+def test_pyright_version_resolves_platform_specific_cli_wrappers(
+    tmp_path, monkeypatch, extension
+):
+    binary = tmp_path / "pyright-langserver"
+    binary.write_text("fake", encoding="utf-8")
+    sibling = tmp_path / ("pyright" + extension)
+    sibling.write_text("fake", encoding="utf-8")
+    calls = []
+
+    def fake_run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="pyright 1.1.413\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    assert _pyright_version(binary) == TESTED_PYRIGHT_VERSION
+    assert calls[0][0] == [str(sibling), "--version"]
+    assert calls[0][1]["timeout"] == 60
