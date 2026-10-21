@@ -117,16 +117,23 @@ class Request:
         self.cv = asyncio.Condition()
         self.result: Optional[PayloadLike] = None
         self.error: Optional[Error] = None
+        self.completed = False
 
     async def on_result(self, params: PayloadLike) -> None:
-        self.result = params
         async with self.cv:
-            self.cv.notify()
+            if self.completed:
+                return
+            self.result = params
+            self.completed = True
+            self.cv.notify_all()
 
     async def on_error(self, err: Error) -> None:
-        self.error = err
         async with self.cv:
-            self.cv.notify()
+            if self.completed:
+                return
+            self.error = err
+            self.completed = True
+            self.cv.notify_all()
 
 
 def content_length(line: bytes) -> Optional[int]:
@@ -196,6 +203,8 @@ class LanguageServerHandler:
         self.process_launch_info = process_launch_info
         self.process = None
         self._received_shutdown = False
+        self._stopping = False
+        self._write_lock: Optional[asyncio.Lock] = None
 
         self.request_id = 1
         self._response_handlers: Dict[Any, Request] = {}
@@ -224,17 +233,22 @@ class LanguageServerHandler:
             start_new_session=self.start_independent_lsp_process,
         )
 
+        self._stopping = False
+        self._received_shutdown = False
+        # A SyncLanguageServer can restart this handler in a new event loop.
+        self._write_lock = asyncio.Lock()
         self.loop = asyncio.get_event_loop()
-        self.tasks[self.task_counter] = self.loop.create_task(self.run_forever())
-        self.task_counter += 1
-        self.tasks[self.task_counter] = self.loop.create_task(self.run_forever_stderr())
-        self.task_counter += 1
+        self._track_task(self.run_forever())
+        self._track_task(self.run_forever_stderr())
 
     async def stop(self) -> None:
         """
         Sends the terminate signal to the language server process and waits for it to exit, with a timeout, killing it if necessary
         """
-        # First cancel all tasks
+        # Stop admitting new requests and release callers waiting on the
+        # process, even when it exits without a shutdown response.
+        self._stopping = True
+        await self._fail_pending_requests("Language server process stopped")
         await self._cancel_pending_tasks()
     
         process = self.process
@@ -245,6 +259,32 @@ class LanguageServerHandler:
     
         # Clean up the process
         await self._cleanup_process(process)
+
+    async def _fail_pending_requests(self, reason: str) -> None:
+        """Wake and forget every request whose response will never arrive."""
+        pending = list(self._response_handlers.values())
+        self._response_handlers.clear()
+        for request in pending:
+            await request.on_error(Error(ErrorCodes.InternalError, reason))
+
+    def _track_task(self, coroutine) -> None:
+        """Track only running reader/notification tasks, not completed ones."""
+        identifier = self.task_counter
+        self.task_counter += 1
+        task = asyncio.get_running_loop().create_task(coroutine)
+        self.tasks[identifier] = task
+
+        def remove_completed(finished):
+            self.tasks.pop(identifier, None)
+            try:
+                finished.result()
+            except asyncio.CancelledError:
+                pass
+            except Exception as exc:
+                # Avoid retaining failed tasks or echoing untrusted wire data.
+                self._log(f"LSP background task failed: {type(exc).__name__}")
+
+        task.add_done_callback(remove_completed)
 
     async def _cancel_pending_tasks(self):
         """Cancel all pending tasks and wait for them to complete or timeout."""
@@ -375,6 +415,9 @@ class LanguageServerHandler:
         Continuously read from the language server process stdout and handle the messages
         invoking the registered response and notification handlers
         """
+        # A delayed reader from an earlier lifespan must never abort pending
+        # requests belonging to a new process after restart.
+        reader_process = self.process
         try:
             while self.process and self.process.stdout and not self.process.stdout.at_eof():
                 line = await self.process.stdout.readline()
@@ -392,10 +435,16 @@ class LanguageServerHandler:
                     continue
                 body = await self.process.stdout.readexactly(num_bytes)
 
-                self.tasks[self.task_counter] = asyncio.get_event_loop().create_task(self._handle_body(body))
-                self.task_counter += 1
-        except (BrokenPipeError, ConnectionResetError, StopLoopException):
+                self._track_task(self._handle_body(body))
+        except (BrokenPipeError, ConnectionResetError, StopLoopException,
+                asyncio.IncompleteReadError):
             pass
+        finally:
+            if self.process is reader_process and not self._received_shutdown:
+                # EOF/crash is as terminal as an explicit stop, but an old
+                # reader may not close a newly started session's requests.
+                self._stopping = True
+                await self._fail_pending_requests("Language server connection closed")
         return self._received_shutdown
 
     async def run_forever_stderr(self) -> None:
@@ -450,37 +499,46 @@ class LanguageServerHandler:
         self._send_payload_sync(make_notification(method, params))
 
     def send_response(self, request_id: Any, params: PayloadLike) -> None:
-        """
-        Send response to the given request id to the server with the given parameters
-        """
-        self.tasks[self.task_counter] = asyncio.get_event_loop().create_task(
-            self._send_payload(make_response(request_id, params))
-        )
-        self.task_counter += 1
+        """Send a response to a server-initiated request."""
+        self._track_task(self._send_payload(make_response(request_id, params)))
 
     def send_error_response(self, request_id: Any, err: Error) -> None:
-        """
-        Send error response to the given request id to the server with the given error
-        """
-        self.tasks[self.task_counter] = asyncio.get_event_loop().create_task(
-            self._send_payload(make_error_response(request_id, err))
-        )
-        self.task_counter += 1
+        """Send an error response to a server-initiated request."""
+        self._track_task(self._send_payload(make_error_response(request_id, err)))
 
     async def send_request(self, method: str, params: Optional[dict] = None) -> None:
         """
         Send request to the server, register the request id, and wait for the response
         """
+        if self._stopping:
+            raise Error(ErrorCodes.InternalError, "Language server is stopped")
         request = Request()
         request_id = self.request_id
         self.request_id += 1
         self._response_handlers[request_id] = request
-        async with request.cv:
+        try:
+            # Never hold the condition lock across stdin I/O: stop() must be
+            # able to wake abandoned requests even if pipe.drain() stalls.
             await self._send_payload(make_request(method, request_id, params))
-            await request.cv.wait()
-        if isinstance(request.error, Error):
-            raise request.error
-        return request.result
+            async with request.cv:
+                await request.cv.wait_for(lambda: request.completed)
+            if isinstance(request.error, Error):
+                raise request.error
+            return request.result
+        except asyncio.CancelledError:
+            # Inform an active server that the request is no longer wanted;
+            # always preserve cancellation even if stdin is already closed.
+            if not self._stopping:
+                try:
+                    self.notify.cancel_request({"id": request_id})
+                except (OSError, RuntimeError, ValueError):
+                    pass
+            raise
+        finally:
+            # A timed-out or cancelled request must never retain its response
+            # record. A late/duplicate reply will be discarded by the handler.
+            if self._response_handlers.get(request_id) is request:
+                self._response_handlers.pop(request_id, None)
 
     def _send_payload_sync(self, payload: StringDict) -> None:
         """
@@ -494,16 +552,21 @@ class LanguageServerHandler:
         self.process.stdin.writelines(msg)
 
     async def _send_payload(self, payload: StringDict) -> None:
-        """
-        Send the payload to the server by writing to its stdin asynchronously.
-        """
-        if not self.process or not self.process.stdin:
-            return
-        msg = create_message(payload)
-        if self.logger:
-            self.logger("client", "server", payload)
-        self.process.stdin.writelines(msg)
-        await self.process.stdin.drain()
+        """Write a complete LSP frame, serializing concurrent drain calls."""
+        lock = self._write_lock
+        if lock is None:
+            raise Error(ErrorCodes.InternalError, "Language server is not running")
+        async with lock:
+            if self._stopping:
+                raise Error(ErrorCodes.InternalError, "Language server is stopped")
+            process = self.process
+            if not process or not process.stdin:
+                raise Error(ErrorCodes.InternalError, "Language server is not running")
+            msg = create_message(payload)
+            if self.logger:
+                self.logger("client", "server", payload)
+            process.stdin.writelines(msg)
+            await process.stdin.drain()
 
     def on_request(self, method: str, cb) -> None:
         """
@@ -521,13 +584,36 @@ class LanguageServerHandler:
         """
         Handle the response received from the server for a request, using the id to determine the request
         """
-        request = self._response_handlers.pop(response["id"])
+        request_id = response.get("id")
+        if type(request_id) not in (int, str):
+            self._log("Ignoring LSP response with unroutable id")
+            return
+        request = self._response_handlers.get(request_id)
+        if request is None or self._stopping:
+            # Timeout/cancellation and duplicate replies are legal races.
+            # Never fail another reader task for a completed request id.
+            self._log("Ignoring late or duplicate LSP response")
+            return
         if "result" in response and "error" not in response:
             await request.on_result(response["result"])
         elif "result" not in response and "error" in response:
-            await request.on_error(Error.from_lsp(response["error"]))
+            try:
+                raw_error = response["error"]
+                if (
+                    not isinstance(raw_error, dict)
+                    or not isinstance(raw_error.get("code"), int)
+                    or isinstance(raw_error.get("code"), bool)
+                    or not isinstance(raw_error.get("message"), str)
+                ):
+                    raise ValueError("Invalid JSON-RPC error shape")
+                error = Error.from_lsp(raw_error)
+            except (KeyError, TypeError, ValueError):
+                # A malformed response still completes its waiting request;
+                # otherwise a corrupt peer could strand the caller forever.
+                error = Error(ErrorCodes.InvalidRequest, "Malformed LSP error response")
+            await request.on_error(error)
         else:
-            await request.on_error(Error(ErrorCodes.InvalidRequest, ""))
+            await request.on_error(Error(ErrorCodes.InvalidRequest, "Malformed LSP response"))
 
     async def _request_handler(self, response: StringDict) -> None:
         """

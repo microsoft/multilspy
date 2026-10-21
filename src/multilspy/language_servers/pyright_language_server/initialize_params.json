@@ -1,0 +1,55 @@
+{
+  "_description": "Conservative LSP 3.17 capabilities for the Python Pyright language server.",
+  "processId": "$processId",
+  "rootPath": "$rootPath",
+  "rootUri": "$rootUri",
+  "workspaceFolders": [
+    {"name": "$name", "uri": "$uri"}
+  ],
+  "clientInfo": {"name": "multilspy"},
+  "capabilities": {
+    "general": {
+      "positionEncodings": ["utf-16"]
+    },
+    "workspace": {
+      "applyEdit": false,
+      "configuration": true,
+      "workspaceFolders": false,
+      "symbol": {"dynamicRegistration": false},
+      "workspaceEdit": {"documentChanges": true}
+    },
+    "textDocument": {
+      "definition": {"linkSupport": true},
+      "declaration": {"linkSupport": true},
+      "typeDefinition": {"linkSupport": true},
+      "references": {},
+      "hover": {"contentFormat": ["markdown", "plaintext"]},
+      "completion": {
+        "dynamicRegistration": false,
+        "contextSupport": true,
+        "completionItem": {
+          "snippetSupport": false,
+          "documentationFormat": ["plaintext"]
+        }
+      },
+      "signatureHelp": {
+        "dynamicRegistration": false,
+        "signatureInformation": {
+          "documentationFormat": ["plaintext"],
+          "parameterInformation": {"labelOffsetSupport": true}
+        }
+      },
+      "rename": {"dynamicRegistration": false, "prepareSupport": true},
+      "codeAction": {
+        "dynamicRegistration": false,
+        "codeActionLiteralSupport": {
+          "codeActionKind": {"valueSet": ["quickfix", "source.organizeImports"]}
+        }
+      },
+      "callHierarchy": {"dynamicRegistration": false},
+      "documentHighlight": {"dynamicRegistration": false},
+      "documentSymbol": {"hierarchicalDocumentSymbolSupport": true},
+      "publishDiagnostics": {"relatedInformation": true}
+    }
+  }
+}

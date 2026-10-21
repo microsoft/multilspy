@@ -4,7 +4,7 @@ Configuration parameters for Multilspy.
 
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional
+from typing import Literal, Optional
 
 class Language(str, Enum):
     """
@@ -45,6 +45,10 @@ class MultilspyConfig:
     # artifacts. Defaults to ~/.multilspy/lsp/<server_name>/ when None.
     # Ignored when server_binary is set.
     server_install_dir: Optional[str] = None
+
+    # Append new options after existing fields to preserve positional callers.
+    # Jedi remains the default; Pyright requires an explicit choice.
+    python_server: Literal["jedi", "pyright"] = "jedi"
 
     @classmethod
     def from_dict(cls, env: dict):

@@ -89,5 +89,66 @@ jobs:
         pip install -r requirements.txt
         pip install -e .
 
+    - name: Install pinned Pyright for real integration tests
+      run: |
+        npm install --prefix "$RUNNER_TEMP/multilspy-pyright" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund pyright@1.1.413
+        PYRIGHT_BIN="$RUNNER_TEMP/multilspy-pyright/node_modules/.bin/pyright-langserver"
+        test -x "$PYRIGHT_BIN"
+        echo "MULTILSPY_PYRIGHT_TEST_BINARY=$PYRIGHT_BIN" >> "$GITHUB_ENV"
+
     - name: Run tests
       run: pytest tests/multilspy -v --tb=short
+
+  pyright-windows:
+    name: Pyright native Windows (Python ${{ matrix.python-version }})
+    runs-on: windows-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13", "3.14"]
+    env:
+      PYTHONUTF8: "1"
+
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+    - name: Set up Python
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: "20"
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install -r requirements.txt
+        python -m pip install -e .
+
+    - name: Install pinned Pyright for Windows
+      shell: pwsh
+      run: |
+        $root = Join-Path $env:RUNNER_TEMP "multilspy-pyright"
+        npm install --prefix $root --no-save --no-package-lock --ignore-scripts --no-audit --no-fund pyright@1.1.413
+        if ($LASTEXITCODE -ne 0) { throw "npm installation failed" }
+        $binary = Join-Path $root "node_modules/.bin/pyright-langserver.cmd"
+        if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) { throw "Pinned Pyright not installed" }
+        "MULTILSPY_PYRIGHT_TEST_BINARY=$binary" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+    - name: Test real Pyright, protocol, Unicode and lifecycle on Windows
+      run: >-
+        python -m pytest -q
+        tests/multilspy/test_multilspy_pyright.py
+        tests/multilspy/test_pyright_adapter_notifications.py
+        tests/multilspy/test_pyright_process_lifecycle.py
+        tests/multilspy/test_lsp_result_shapes.py
+        tests/multilspy/test_path_utils_portability.py
+        tests/multilspy/test_completion_responses.py
+        tests/multilspy/test_utf16_buffer_positions.py
+        tests/multilspy/test_python_completions.py
+        tests/multilspy/test_sync_startup.py
+        tests/multilspy/test_sync_file_thread.py
+        --tb=short
