@@ -34,8 +34,6 @@ class MultilspyConfig:
     Configuration parameters
     """
     code_language: Language
-    # Preserve Jedi as the default Python backend; explicitly opt in to Pyright.
-    python_server: Literal["jedi", "pyright"] = "jedi"
     trace_lsp_communication: bool = False
     start_independent_lsp_process: bool = True
 
@@ -47,6 +45,10 @@ class MultilspyConfig:
     # artifacts. Defaults to ~/.multilspy/lsp/<server_name>/ when None.
     # Ignored when server_binary is set.
     server_install_dir: Optional[str] = None
+
+    # Append new options after existing fields to preserve positional callers.
+    # Jedi remains the default; Pyright requires an explicit choice.
+    python_server: Literal["jedi", "pyright"] = "jedi"
 
     @classmethod
     def from_dict(cls, env: dict):

@@ -548,6 +548,9 @@ class LanguageServer:
                     response = {"items": response, "isIncomplete": False}
                 if not response["isIncomplete"]:
                     break
+                completion_params["context"] = {
+                    "triggerKind": LSPTypes.CompletionTriggerKind.TriggerForIncompleteCompletions
+                }
 
             # TODO: Understand how to appropriately handle `isIncomplete`
             if response is None or (response["isIncomplete"] and not(allow_incomplete)):
@@ -559,26 +562,27 @@ class LanguageServer:
             response: List[LSPTypes.CompletionItem] = response
 
             # TODO: Handle the case when the completion is a keyword
-            items = [item for item in response if item["kind"] != LSPTypes.CompletionItemKind.Keyword]
+            items = [item for item in response if item.get("kind") != LSPTypes.CompletionItemKind.Keyword]
 
             completions_list: List[multilspy_types.CompletionItem] = []
 
             for item in items:
-                assert "insertText" in item or "textEdit" in item
-                assert "kind" in item
+                # LSP CompletionItem requires label; insertText, textEdit,
+                # and kind are all optional.
+                kind = item.get("kind", LSPTypes.CompletionItemKind.Text)
                 completion_item = {}
                 if "detail" in item:
                     completion_item["detail"] = item["detail"]
                 
                 if "label" in item:
                     completion_item["completionText"] = item["label"]
-                    completion_item["kind"] = item["kind"]
+                    completion_item["kind"] = kind
                 elif "insertText" in item:
                     completion_item["completionText"] = item["insertText"]
-                    completion_item["kind"] = item["kind"]
+                    completion_item["kind"] = kind
                 elif "textEdit" in item and "newText" in item["textEdit"]:
                     completion_item["completionText"] = item["textEdit"]["newText"]
-                    completion_item["kind"] = item["kind"]
+                    completion_item["kind"] = kind
                 elif "textEdit" in item and "range" in item["textEdit"]:
                     new_dot_lineno, new_dot_colno = (
                         completion_params["position"]["line"],
@@ -595,7 +599,7 @@ class LanguageServer:
                     )
                     
                     completion_item["completionText"] = item["textEdit"]["newText"]
-                    completion_item["kind"] = item["kind"]
+                    completion_item["kind"] = kind
                 elif "textEdit" in item and "insert" in item["textEdit"]:
                     assert False
                 else:

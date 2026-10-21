@@ -31,6 +31,9 @@ def server(tmp_path):
     ([[]], []),
     ([[ITEM]], EXPECTED),
     ([{"isIncomplete": False, "items": [ITEM]}], EXPECTED),
+    # A valid CompletionItem may be label-only, with no edit or kind.
+    ([[{"label": "example", "kind": 6}]], EXPECTED),
+    ([[{"label": "example"}]], [{"completionText": "example", "kind": 1}]),
     ([{"isIncomplete": True, "items": []}, None], []),
     ([{"isIncomplete": True, "items": []}, {"isIncomplete": False, "items": [ITEM]}], EXPECTED),
 ])
@@ -51,4 +54,23 @@ async def test_incomplete_completion_retries_are_bounded(server, allow_incomplet
     result = await server.request_completions("example.py", 0, 0, allow_incomplete=allow_incomplete)
     assert result == (EXPECTED if allow_incomplete else [])
     assert server.server.send.completion.await_count == 30
+    assert not server.open_file_buffers
+
+@pytest.mark.asyncio
+async def test_retry_incomplete_completions_uses_protocol_trigger(server):
+    seen = []
+    responses = [
+        {"isIncomplete": True, "items": []},
+        {"isIncomplete": True, "items": []},
+        {"isIncomplete": False, "items": [ITEM]},
+    ]
+
+    async def completion(params):
+        seen.append(params["context"]["triggerKind"])
+        return responses[len(seen) - 1]
+
+    server.server.send.completion = AsyncMock(side_effect=completion)
+    result = await server.request_completions("example.py", 0, 0)
+    assert result == EXPECTED
+    assert seen == [1, 3, 3]
     assert not server.open_file_buffers

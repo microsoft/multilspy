@@ -53,12 +53,35 @@ pip install multilspy
 | cpp | clangd |
 
 
-Pyright is an optional Python backend. Install pyright-langserver and
-select it with MultilspyConfig(code_language=Language.PYTHON,
-python_server="pyright"); pass server_binary="/absolute/path/to/pyright-langserver"
-if the executable is not on PATH. The adapter launches the server with
---stdio and does not automatically install it. Existing Python users
-continue using Jedi by default.
+For Python, Jedi remains the default language server. To use Pyright instead,
+install [Pyright](https://github.com/microsoft/pyright) and explicitly select
+the optional backend:
+
+```python
+from multilspy import LanguageServer
+from multilspy.multilspy_config import Language, MultilspyConfig
+from multilspy.multilspy_logger import MultilspyLogger
+
+config = MultilspyConfig(
+    code_language=Language.PYTHON,
+    python_server="pyright",
+    server_binary="/absolute/path/to/pyright-langserver",
+)
+lsp = LanguageServer.create(config, MultilspyLogger(), "/path/to/python/project")
+async with lsp.start_server():
+    definitions = await lsp.request_definition("module.py", 10, 4)
+```
+
+The server binary must already be installed; the adapter adds the --stdio
+argument and does not download/install Pyright. If server_binary is
+omitted, it uses pyright-langserver from PATH. The existing
+MultilspyConfig(code_language=Language.PYTHON) continues using Jedi.
+
+Real Pyright integration tests require a preinstalled language server. Set
+MULTILSPY_PYRIGHT_TEST_BINARY to its absolute executable path before running
+pytest on tests/multilspy/test_multilspy_pyright.py. Without this variable
+the real-server tests skip; mock/fixture coverage still runs offline.
+This keeps the normal test suite independent of automatic Pyright downloads.
 
 ## Usage
 Example usage:
