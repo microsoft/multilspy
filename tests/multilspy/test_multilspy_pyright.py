@@ -14,6 +14,8 @@ import json
 import os
 import re
 import subprocess
+import sys
+import venv
 from pathlib import Path
 
 import pytest
@@ -28,6 +30,7 @@ from multilspy.lsp_protocol_handler.server import Error
 from multilspy.multilspy_config import Language, MultilspyConfig
 from multilspy.multilspy_exceptions import MultilspyException
 from multilspy.multilspy_logger import MultilspyLogger
+from multilspy.multilspy_utils import PathUtils, TextUtils
 
 # The adapter, the capability matrix and every exact payload in this module
 # were captured against this Pyright release.
@@ -105,6 +108,36 @@ def _range(start_line, start_character, end_line, end_character):
     }
 
 
+def _same_file_uri(left, right):
+    """Compare file locations, not the OS-specific spelling of LSP URIs.
+
+    Windows pathlib emits file:///C:/path, while Pyright's vscode-uri emits
+    file:///c%3A/path; both represent the same file on the same filesystem.
+    """
+    return os.path.normcase(PathUtils.uri_to_path(left)) == os.path.normcase(
+        PathUtils.uri_to_path(right)
+    )
+
+
+def _portable_lsp_payload(value):
+    """Normalize only file-URI fields/keys in exact wire response assertions."""
+    if isinstance(value, list):
+        return [_portable_lsp_payload(item) for item in value]
+    if isinstance(value, dict):
+        output = {}
+        for key, item in value.items():
+            normalized_key = (
+                os.path.normcase(PathUtils.uri_to_path(key))
+                if isinstance(key, str) and key.startswith("file:") else key
+            )
+            if key in ("uri", "targetUri") and isinstance(item, str) and item.startswith("file:"):
+                output[normalized_key] = os.path.normcase(PathUtils.uri_to_path(item))
+            else:
+                output[normalized_key] = _portable_lsp_payload(item)
+        return output
+    return value
+
+
 def _pyright_version(language_server_binary):
     """Return the Pyright version tuple for a pyright-langserver executable.
 
@@ -113,21 +146,32 @@ def _pyright_version(language_server_binary):
     also carries the version in its package.json next to the resolved script.
     """
     binary = Path(language_server_binary)
+    # npm puts .cmd entry points in node_modules/.bin on Windows; they are
+    # not directly executable with subprocess(shell=False). Read the pinned
+    # package metadata instead (and avoid invoking wrapper bootstrap logic).
+    candidates = (
+        binary.resolve().parent / "package.json",
+        binary.parent.parent / "pyright" / "package.json",
+    )
+    for package_json in candidates:
+        if package_json.is_file():
+            version = json.loads(package_json.read_text(encoding="utf-8")).get("version", "")
+            match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
+            if match:
+                return tuple(int(part) for part in match.groups())
+
     for name in ("pyright", "pyright.cmd", "pyright.exe"):
         sibling = binary.with_name(name)
         if sibling.is_file():
+            command = [str(sibling), "--version"]
+            if os.name == "nt" and sibling.suffix.lower() == ".cmd":
+                command = ["cmd.exe", "/d", "/c", str(sibling), "--version"]
             completed = subprocess.run(
-                [str(sibling), "--version"], capture_output=True, text=True, timeout=60, check=False
+                command, capture_output=True, text=True, timeout=60, check=False
             )
             match = re.search(r"pyright (\d+)\.(\d+)\.(\d+)", completed.stdout + completed.stderr)
             if completed.returncode == 0 and match:
                 return tuple(int(part) for part in match.groups())
-    package_json = binary.resolve().parent / "package.json"
-    if package_json.is_file():
-        version = json.loads(package_json.read_text(encoding="utf-8")).get("version", "")
-        match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
-        if match:
-            return tuple(int(part) for part in match.groups())
     return None
 
 
@@ -374,7 +418,7 @@ async def test_real_pyright_definition_references_hover_and_symbols(
                 if workspace_symbols:
                     break
                 await asyncio.sleep(0.1)
-            assert workspace_symbols == [
+            assert _portable_lsp_payload(workspace_symbols) == _portable_lsp_payload([
                 {
                     "name": "greet",
                     "kind": 12,
@@ -383,7 +427,7 @@ async def test_real_pyright_definition_references_hover_and_symbols(
                         "range": _range(0, 4, 0, 9),
                     },
                 }
-            ]
+            ])
 
     await asyncio.wait_for(exercise(), timeout=30)
     assert server.server.process is None
@@ -471,14 +515,14 @@ async def test_real_pyright_high_level_api_on_classes_across_files(
             workspace_symbols = await asyncio.wait_for(
                 server.request_workspace_symbol("Square"), timeout=8
             )
-            assert {
+            assert _portable_lsp_payload({
                 "name": "Square",
                 "kind": 5,
                 "location": {
                     "uri": (python_project / "shapes.py").as_uri(),
                     "range": _range(17, 6, 17, 12),
                 },
-            } in workspace_symbols
+            }) in _portable_lsp_payload(workspace_symbols)
 
     await asyncio.wait_for(exercise(), timeout=30)
     assert server.server.process is None
@@ -643,7 +687,9 @@ async def test_real_pyright_read_only_requests_return_exact_shapes(
             ), server.open_file("report.py"):
                 for method, params, expected in corpus:
                     result = await asyncio.wait_for(getattr(send, method)(params), timeout=8)
-                    assert result == expected, (method, params.get("position", params))
+                    assert _portable_lsp_payload(result) == _portable_lsp_payload(expected), (
+                        method, params.get("position", params)
+                    )
 
                 # The high-level API passes UTF-16 columns through unchanged.
                 definition = await asyncio.wait_for(
@@ -659,7 +705,7 @@ async def test_real_pyright_read_only_requests_return_exact_shapes(
                 # Shape.area in the workspace and to typeshed's sum overloads.
                 item = (await asyncio.wait_for(send.prepare_call_hierarchy(at("shapes.py", 25, 4)), timeout=8))[0]
                 incoming = await asyncio.wait_for(send.incoming_calls({"item": item}), timeout=8)
-                assert incoming == [
+                assert _portable_lsp_payload(incoming) == _portable_lsp_payload([
                     {
                         "from": {
                             "kind": 2,
@@ -670,10 +716,12 @@ async def test_real_pyright_read_only_requests_return_exact_shapes(
                         },
                         "fromRanges": [_range(6, 10, 6, 20)],
                     }
-                ]
+                ])
                 outgoing = await asyncio.wait_for(send.outgoing_calls({"item": item}), timeout=8)
-                workspace_calls = [call for call in outgoing if call["to"]["uri"] == uri("shapes.py")]
-                assert workspace_calls == [
+                workspace_calls = [
+                    call for call in outgoing if _same_file_uri(call["to"]["uri"], uri("shapes.py"))
+                ]
+                assert _portable_lsp_payload(workspace_calls) == _portable_lsp_payload([
                     {
                         "to": {
                             "kind": 6,
@@ -684,7 +732,7 @@ async def test_real_pyright_read_only_requests_return_exact_shapes(
                         },
                         "fromRanges": [_range(26, 21, 26, 25)],
                     }
-                ]
+                ])
                 builtin_calls = [call for call in outgoing if call not in workspace_calls]
                 assert builtin_calls
                 for call in builtin_calls:
@@ -697,7 +745,7 @@ async def test_real_pyright_read_only_requests_return_exact_shapes(
                     send.rename({**at("shapes.py", 17, 6), "newName": "Box"}), timeout=8
                 )
                 changes = sorted(proposal["documentChanges"], key=lambda change: change["textDocument"]["uri"])
-                assert changes == [
+                assert _portable_lsp_payload(changes) == _portable_lsp_payload([
                     {
                         "textDocument": {"uri": uri("report.py"), "version": None},
                         "edits": [{"range": span, "newText": "Box"} for span in square_uses],
@@ -706,7 +754,7 @@ async def test_real_pyright_read_only_requests_return_exact_shapes(
                         "textDocument": {"uri": uri("shapes.py"), "version": None},
                         "edits": [{"range": _range(17, 6, 17, 12), "newText": "Box"}],
                     },
-                ]
+                ])
 
                 # completionItem/resolve adds documentation to a raw item.
                 completion = await asyncio.wait_for(
@@ -786,7 +834,7 @@ async def test_real_pyright_commands_cannot_edit_the_workspace(
                 while not proposal and loop.time() < deadline:
                     await asyncio.sleep(0.1)
                     proposal = await asyncio.wait_for(send.execute_command(command), timeout=8)
-                assert proposal == {
+                assert _portable_lsp_payload(proposal) == _portable_lsp_payload({
                     "changes": {
                         report.as_uri(): [
                             {
@@ -795,7 +843,7 @@ async def test_real_pyright_commands_cannot_edit_the_workspace(
                             }
                         ]
                     }
-                }
+                })
                 for _ in range(50):
                     if apply_requests:
                         break
@@ -833,7 +881,7 @@ async def test_real_pyright_publishes_type_diagnostics_without_editing(
                         )
                     except asyncio.TimeoutError:
                         continue
-                    if notification.get("uri") != source.as_uri():
+                    if not _same_file_uri(notification.get("uri", ""), source.as_uri()):
                         continue
                     found.update(
                         entry.get("code")
@@ -887,7 +935,7 @@ async def test_real_pyright_type_checking_mode_controls_push_diagnostics(
                         )
                     except asyncio.TimeoutError:
                         continue
-                    if notification.get("uri") != source.as_uri():
+                    if not _same_file_uri(notification.get("uri", ""), source.as_uri()):
                         continue
                     observed = notification.get("diagnostics", [])
                     if {item.get("code") for item in observed} == expected_codes:
@@ -1022,7 +1070,7 @@ async def test_real_pyright_incremental_edits_use_utf16_columns(
                 "emoji.py", {"line": 0, "character": 14},
                 {"line": 0, "character": 22},
             ) == "missing_"
-            assert server.get_open_file_text("emoji.py").encode("utf-8") == original
+            assert server.get_open_file_text("emoji.py") == source.read_text(encoding="utf-8")
             for _ in range(20):
                 restored = await asyncio.wait_for(
                     server.request_definition("emoji.py", 0, 14), timeout=8
@@ -1053,5 +1101,164 @@ def test_pyright_version_resolves_platform_specific_cli_wrappers(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     assert _pyright_version(binary) == TESTED_PYRIGHT_VERSION
-    assert calls[0][0] == [str(sibling), "--version"]
+    expected_command = [str(sibling), "--version"]
+    if os.name == "nt" and extension == ".cmd":
+        expected_command = ["cmd.exe", "/d", "/c", str(sibling), "--version"]
+    assert calls[0][0] == expected_command
     assert calls[0][1]["timeout"] == 60
+
+
+@pytest.mark.asyncio
+async def test_real_pyright_opt_in_organize_imports_applies_via_authorized_client(
+    python_project, create_pyright
+):
+    """An explicitly installed callback can apply an actual Pyright WorkspaceEdit.
+
+    The library does not make file changes by itself. The callback simulates
+    the embedding editor's authorization, UTF-16 position handling and disk
+    persistence, restricted to a temporary fixture file.
+    """
+    server = create_pyright()
+    report = python_project / "report.py"
+    before = {path: path.read_bytes() for path in python_project.iterdir() if path.is_file()}
+    done = asyncio.Event()
+    received = []
+
+    async def apply_authorized_edit(params):
+        received.append(params)
+        keys = list(params["edit"]["changes"])
+        if len(keys) != 1 or not _same_file_uri(keys[0], report.as_uri()):
+            raise ValueError("Unexpected workspace edit target")
+        edits = params["edit"]["changes"][keys[0]]
+        content = report.read_text(encoding="utf-8")
+        translated = []
+        for edit in edits:
+            start = edit["range"]["start"]
+            end = edit["range"]["end"]
+            translated.append((
+                TextUtils.get_index_from_line_col(content, start["line"], start["character"]),
+                TextUtils.get_index_from_line_col(content, end["line"], end["character"]),
+                edit["newText"],
+            ))
+        for start, end, replacement in sorted(translated, reverse=True):
+            content = content[:start] + replacement + content[end:]
+        report.write_text(content, encoding="utf-8")
+        done.set()
+        return {"applied": True}
+
+    server.set_workspace_edit_handler(apply_authorized_edit)
+    async def exercise():
+        async with server.start_server():
+            with server.open_file("report.py"):
+                command = {"command": "pyright.organizeimports", "arguments": [report.as_uri()]}
+                result = await asyncio.wait_for(
+                    server.server.send.execute_command(command), timeout=8
+                )
+                assert isinstance(result, dict)
+                assert any(_same_file_uri(key, report.as_uri()) for key in result["changes"])
+                await asyncio.wait_for(done.wait(), timeout=8)
+
+    await asyncio.wait_for(exercise(), timeout=35)
+    assert len(received) == 1
+    assert report.read_text(encoding="utf-8").startswith(
+        "import os\nimport sys\n\nfrom shapes import Point, Square, total_area"
+    )
+    for path, contents in before.items():
+        if path != report:
+            assert path.read_bytes() == contents
+    assert server.server.process is None
+
+
+@pytest.mark.asyncio
+async def test_real_pyright_create_type_stub_writes_without_workspace_apply_edit(
+    tmp_path, pyright_binary
+):
+    """A Pyright command can write .pyi files directly, without asking applyEdit.
+
+    Exercise only an isolated disposable virtualenv and project. This is an
+    explicit warning that merely denying workspace/applyEdit is not a sandbox.
+    """
+    env_root = tmp_path / "venvs"
+    env = env_root / "isolated"
+    venv.create(env, with_pip=False)
+    if os.name == "nt":
+        site_packages = env / "Lib" / "site-packages"
+    else:
+        site_packages = env / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
+    vendor = site_packages / "toy_untyped_package"
+    vendor.mkdir(parents=True)
+    (vendor / "__init__.py").write_text(
+        "def hello(x):\n    return x * 2\n", encoding="utf-8"
+    )
+    project = tmp_path / "project"
+    project.mkdir()
+    source = project / "app.py"
+    original = "import toy_untyped_package\nprint(toy_untyped_package.hello(3))\n"
+    source.write_text(original, encoding="utf-8")
+    (project / "pyrightconfig.json").write_text(json.dumps({
+        "typeCheckingMode": "strict",
+        "reportMissingTypeStubs": "warning",
+        "venvPath": str(env_root),
+        "venv": "isolated",
+        "stubPath": "typings",
+        "include": ["app.py"],
+    }), encoding="utf-8")
+    server = LanguageServer.create(
+        MultilspyConfig(
+            code_language=Language.PYTHON, python_server="pyright",
+            server_binary=pyright_binary,
+        ),
+        MultilspyLogger(), str(project)
+    )
+    apply_requests = []
+    # No edit callback is registered; prove the server still writes directly.
+    stub = project / "typings" / "toy_untyped_package" / "__init__.pyi"
+
+    async def exercise():
+        async with server.start_server():
+            refuse_edit = server.server.on_request_handlers["workspace/applyEdit"]
+
+            async def record_edit_request(params):
+                apply_requests.append(params)
+                return await refuse_edit(params)
+
+            server.server.on_request_handlers["workspace/applyEdit"] = record_edit_request
+            with server.open_file("app.py"):
+                diagnostics = []
+                loop = asyncio.get_running_loop()
+                deadline = loop.time() + 20
+                while loop.time() < deadline:
+                    try:
+                        notification = await server.next_diagnostics(timeout=2)
+                    except asyncio.TimeoutError:
+                        continue
+                    if _same_file_uri(notification.get("uri", ""), source.as_uri()):
+                        diagnostics = notification.get("diagnostics", [])
+                    if any(d.get("code") == "reportMissingTypeStubs" for d in diagnostics):
+                        break
+                assert any(d.get("code") == "reportMissingTypeStubs" for d in diagnostics)
+                actions = await asyncio.wait_for(server.server.send.code_action({
+                    "textDocument": {"uri": source.as_uri()},
+                    "range": _range(0, 0, 0, len("import toy_untyped_package")),
+                    "context": {"diagnostics": diagnostics},
+                }), timeout=8)
+                action = next(
+                    action for action in actions
+                    if action.get("command", {}).get("command") == "pyright.createtypestub"
+                )
+                assert not stub.exists()
+                await asyncio.wait_for(
+                    server.server.send.execute_command(action["command"]), timeout=18
+                )
+                for _ in range(40):
+                    if stub.is_file():
+                        break
+                    await asyncio.sleep(0.1)
+                assert stub.is_file()
+                assert "def hello" in stub.read_text(encoding="utf-8")
+
+    await asyncio.wait_for(exercise(), timeout=65)
+    assert source.read_text(encoding="utf-8") == original
+    assert server.server.process is None
+    assert not server.server_started
+    assert apply_requests == []

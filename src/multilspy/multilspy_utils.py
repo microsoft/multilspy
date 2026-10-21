@@ -103,7 +103,12 @@ class PathUtils:
         Gets relative path if it's possible (paths should be on the same drive),
         returns `None` otherwise.
         """
-        if PurePath(path).drive == PurePath(base_path).drive:
+        # Windows drive letters are case-insensitive. Python 3.14's
+        # urllib.request.url2pathname preserves the URL's drive casing,
+        # unlike older Python releases which uppercased it. Compare drives
+        # using the native filesystem rules so Pyright's file:///c%3A/... URI
+        # resolves relative to a workspace rooted at C:\... .
+        if os.path.normcase(PurePath(path).drive) == os.path.normcase(PurePath(base_path).drive):
             return str(PurePath(os.path.relpath(path, base_path)))
         return None
 

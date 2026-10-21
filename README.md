@@ -110,11 +110,39 @@ Pyright, update and revalidate the expected responses rather than silently
 skipping mismatched versions. For third-party import resolution, configure the
 project through `pyrightconfig.json` or `[tool.pyright]` in `pyproject.toml`.
 
-The adapter rejects server-initiated workspace edits, but this is not an OS
-sandbox. The low-level `server.send` API permits raw executeCommand requests,
-including commands that may write files directly; clients should not expose
-those requests to untrusted callers. Enforce workspace and subprocess
-permissions outside multilspy when building an agent-facing integration.
+By default, Pyright's `workspace/applyEdit` requests are refused and organize
+imports is disabled. To support editor-controlled writes, the embedding client
+can register an **async** handler before starting the server:
+
+```python
+# `lsp` is a PyrightServer returned by LanguageServer.create(...).
+async def apply_workspace_edit(params):
+    # Validate affected URIs, ranges, document versions and user permission.
+    # Handle BOTH `changes` and `documentChanges` (including file operations)
+    # and apply the edit atomically in YOUR editor/workspace layer.
+    return {"applied": False, "failureReason": "Not approved"}
+
+lsp.set_workspace_edit_handler(apply_workspace_edit, timeout_seconds=60)
+```
+
+When a handler is installed, the adapter advertises workspace `applyEdit`
+support and enables Pyright organize-imports commands. The handler's LSP
+response reports whether **the client actually applied the edit**. A successful
+rename request by itself returns an edit *proposal*; multilspy does not apply
+that proposal. It is the caller's responsibility to preview, approve, and
+apply the WorkspaceEdit, including document versions and file operations.
+If documents are already open, update both the editor's in-memory buffers
+and the language server's `didChange` state; writing the disk copy alone leaves
+the LSP document snapshot stale. Handler exceptions and timeouts are reported
+as unsuccessful edits and never treated as authorization to write.
+
+**Security boundary:** this opt-in callback is NOT a subprocess sandbox.
+In Pyright 1.1.413, `pyright.createtypestub` directly writes `.pyi` files on
+the language-server side without calling `workspace/applyEdit`. Other raw
+`server.send.execute_command` calls may have similar side effects. Never expose
+arbitrary commands to untrusted callers; use OS-level filesystem restrictions
+and isolated workspaces for untrusted projects. An embedding application must enforce its own workspace authorization and
+process confinement independently of multilspy's generic LSP integration.
 
 ## Usage
 Example usage:

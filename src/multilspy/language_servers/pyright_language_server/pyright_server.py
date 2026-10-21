@@ -4,12 +4,14 @@ Contains various configurations and settings specific to Pyright.
 """
 
 import asyncio
+import inspect
 import json
 import logging
+import math
 import os
 import pathlib
 import shutil
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 from multilspy.language_server import LanguageServer
@@ -49,6 +51,32 @@ class PyrightServer(LanguageServer):
         # bounded queue so callers can read them without unbounded growth.
         self.diagnostics: asyncio.Queue = asyncio.Queue(maxsize=64)
         self.diagnostics_dropped = False
+        # Applying an LSP WorkspaceEdit belongs to the embedding client. A
+        # callback must be installed explicitly before starting the server.
+        self._workspace_edit_handler: Callable[[dict], Awaitable[dict]] | None = None
+        self._workspace_edit_timeout_seconds = 30.0
+
+    def set_workspace_edit_handler(
+        self, handler: Callable[[dict], Awaitable[dict]] | None,
+        *, timeout_seconds: float = 30.0,
+    ) -> None:
+        """Opt in to processing server-requested workspace edits.
+
+        The callback receives the original ApplyWorkspaceEditParams and must
+        authorize and apply the proposed edit, returning an LSP response such
+        as ``{"applied": True}``. No filesystem changes are made by this
+        adapter. This does NOT restrict commands that write directly on the
+        Pyright server side; callers must sandbox untrusted server processes.
+        """
+        if self.server_started:
+            raise MultilspyException("Cannot change workspace edit handler while running")
+        if handler is not None and not inspect.iscoroutinefunction(handler):
+            raise TypeError("Workspace edit handler must be an async function or None")
+        if (not isinstance(timeout_seconds, (int, float)) or
+                not math.isfinite(timeout_seconds) or timeout_seconds <= 0):
+            raise ValueError("Workspace edit timeout must be a positive finite number")
+        self._workspace_edit_handler = handler
+        self._workspace_edit_timeout_seconds = timeout_seconds
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """
@@ -72,6 +100,9 @@ class PyrightServer(LanguageServer):
         assert d["workspaceFolders"][0]["name"] == "$name"
         d["workspaceFolders"][0]["name"] = os.path.basename(repository_absolute_path)
 
+        # Advertise application support only when an embedding client has
+        # explicitly supplied a handler that authorizes and applies edits.
+        d["capabilities"]["workspace"]["applyEdit"] = self._workspace_edit_handler is not None
         return d
 
     async def next_diagnostics(self, timeout: float = 5.0) -> dict:
@@ -115,7 +146,7 @@ class PyrightServer(LanguageServer):
                 "python.analysis": {},
                 "pyright": {
                     "disableLanguageServices": False,
-                    "disableOrganizeImports": True,
+                    "disableOrganizeImports": self._workspace_edit_handler is None,
                 },
             }
             answers = []
@@ -125,8 +156,38 @@ class PyrightServer(LanguageServer):
             return answers
 
         async def workspace_apply_edit(params):
-            # multilspy never applies server-initiated edits.
-            return {"applied": False, "failureReason": "multilspy Pyright client is read-only"}
+            if self._workspace_edit_handler is None:
+                return {"applied": False, "failureReason": "multilspy Pyright client is read-only"}
+            try:
+                response = await asyncio.wait_for(
+                    self._workspace_edit_handler(params),
+                    timeout=self._workspace_edit_timeout_seconds,
+                )
+                if not isinstance(response, dict) or type(response.get("applied")) is not bool:
+                    raise ValueError("Invalid LSP workspace edit result")
+                result = {"applied": response["applied"]}
+                if not result["applied"]:
+                    if "failureReason" in response:
+                        reason = response["failureReason"]
+                        if not isinstance(reason, str):
+                            raise ValueError("Invalid workspace edit failureReason")
+                        result["failureReason"] = reason[:256]
+                    if "failedChange" in response:
+                        number = response["failedChange"]
+                        if type(number) is not int or number < 0:
+                            raise ValueError("Invalid workspace edit failedChange")
+                        result["failedChange"] = number
+                return result
+            except asyncio.TimeoutError:
+                self.logger.log("LSP: workspace edit handler timed out", logging.WARNING)
+                return {"applied": False, "failureReason": "Workspace edit handler timed out"}
+            except Exception as exc:
+                # Never report applied=true when a client edit failed, or
+                # echo untrusted exception messages that contain local paths.
+                self.logger.log(
+                    f"LSP: workspace edit handler failed ({type(exc).__name__})", logging.WARNING
+                )
+                return {"applied": False, "failureReason": "Workspace edit handler failed"}
 
         async def publish_diagnostics(params):
             if not isinstance(params, dict) or not isinstance(params.get("uri"), str):
@@ -197,8 +258,14 @@ class PyrightServer(LanguageServer):
                     yield self
                 finally:
                     if initialized:
-                        await asyncio.wait_for(
-                            self.server.shutdown(), timeout=self._shutdown_timeout_seconds
-                        )
+                        try:
+                            await asyncio.wait_for(
+                                self.server.shutdown(), timeout=self._shutdown_timeout_seconds
+                            )
+                        except asyncio.TimeoutError:
+                            # A slow/blocked language server must not turn an
+                            # otherwise successful operation into a failed
+                            # context exit; stop() still terminates it.
+                            self.logger.log("LSP: graceful Pyright shutdown timed out", logging.WARNING)
             finally:
                 await self.server.stop()
