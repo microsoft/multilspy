@@ -77,6 +77,24 @@ argument and does not download/install Pyright. If server_binary is
 omitted, it uses pyright-langserver from PATH. The existing
 MultilspyConfig(code_language=Language.PYTHON) continues using Jedi.
 
+Positions follow LSP: line and column are zero-based and the column counts
+UTF-16 code units, so a non-BMP character such as an emoji occupies two columns.
+
+The adapter was validated against Pyright 1.1.413 (`pyright-langserver --stdio`).
+The table lists what that release advertises to multilspy's read-only client
+and how multilspy exposes it:
+
+| Pyright capability | multilspy access | Coverage |
+| --- | --- | --- |
+| definition, references, hover, document symbols, workspace symbols | `request_definition`, `request_references`, `request_hover`, `request_document_symbols`, `request_workspace_symbol` | tested against Pyright |
+| completion, completionItem/resolve | `request_completions`; resolve through `server.send.resolve_completion_item` | tested against Pyright |
+| declaration, typeDefinition, documentHighlight, signatureHelp, call hierarchy | `server.send.*` low-level requests | tested against Pyright |
+| prepareRename, rename, codeAction | `server.send.*`; the response is a proposal, multilspy never applies edits | proposal shape tested; no quick-fix corpus |
+| publishDiagnostics (off/basic/standard/strict) | `next_diagnostics()` bounded queue | tested against Pyright |
+| workspace/configuration, workspace/applyEdit, client/registerCapability | answered by the adapter: fixed read-only settings, edits refused, registration refused | tested with fixtures |
+| executeCommand | advertised with an empty command list | unsupported |
+| implementation, pull diagnostics, semantic tokens, inlay hints, folding, selection ranges, document links, formatting, code lens | not advertised by Pyright 1.1.413; requests fail with MethodNotFound | unsupported |
+
 Real Pyright integration tests require a preinstalled language server. Set
 MULTILSPY_PYRIGHT_TEST_BINARY to its absolute executable path before running
 pytest on tests/multilspy/test_multilspy_pyright.py. Without this variable

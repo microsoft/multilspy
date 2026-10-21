@@ -6,7 +6,10 @@ they skip rather than download/install when it is unavailable.
 """
 
 import asyncio
+import json
 import os
+import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -16,9 +19,53 @@ from multilspy.language_servers.jedi_language_server.jedi_server import JediServ
 from multilspy.language_servers.pyright_language_server.pyright_server import (
     PyrightServer,
 )
+from multilspy.lsp_protocol_handler.lsp_types import ErrorCodes
+from multilspy.lsp_protocol_handler.server import Error
 from multilspy.multilspy_config import Language, MultilspyConfig
 from multilspy.multilspy_exceptions import MultilspyException
 from multilspy.multilspy_logger import MultilspyLogger
+
+# The adapter and the expectations below were validated against this release.
+TESTED_PYRIGHT_VERSION = (1, 1, 413)
+
+# Server capabilities that pyright-langserver 1.1.413 advertises to this
+# read-only client, and well-known ones it does not advertise.
+ADVERTISED_CAPABILITIES = {
+    "callHierarchyProvider",
+    "codeActionProvider",
+    "completionProvider",
+    "declarationProvider",
+    "definitionProvider",
+    "documentHighlightProvider",
+    "documentSymbolProvider",
+    "executeCommandProvider",
+    "hoverProvider",
+    "referencesProvider",
+    "renameProvider",
+    "signatureHelpProvider",
+    "textDocumentSync",
+    "typeDefinitionProvider",
+    "workspace",
+    "workspaceSymbolProvider",
+}
+UNADVERTISED_CAPABILITIES = {
+    "codeLensProvider",
+    "diagnosticProvider",
+    "documentFormattingProvider",
+    "documentLinkProvider",
+    "foldingRangeProvider",
+    "implementationProvider",
+    "inlayHintProvider",
+    "selectionRangeProvider",
+    "semanticTokensProvider",
+}
+
+
+def _range(start_line, start_character, end_line, end_character):
+    return {
+        "start": {"line": start_line, "character": start_character},
+        "end": {"line": end_line, "character": end_character},
+    }
 
 
 @pytest.fixture
@@ -37,6 +84,9 @@ def python_project(tmp_path):
             "result = worker.process()\n"
         ),
         "invalid.py": ("def faulty(name: str) -> str:\n    return 123\n"),
+        # The emoji is one code point but two UTF-16 code units; the second
+        # `x` is at UTF-16 column 14 (code-point column 13).
+        "emoji.py": ("x = '\U0001F600'; y = x\n"),
     }
     for name, contents in files.items():
         (root / name).write_text(contents)
@@ -294,3 +344,259 @@ def test_real_pyright_sync_api_works_and_closes_provider(
     assert sync.language_server.server.process is None
     assert sync.loop.is_closed()
     assert not sync.loop_thread.is_alive()
+
+
+def test_real_pyright_binary_reports_tested_version(pyright_binary):
+    # pyright-langserver has no --version flag; the sibling pyright CLI
+    # installed by the same package reports the shared version.
+    reported = []
+    for candidate in (pyright_binary, str(Path(pyright_binary).with_name("pyright"))):
+        if not Path(candidate).is_file():
+            continue
+        completed = subprocess.run(
+            [candidate, "--version"], capture_output=True, text=True, timeout=30
+        )
+        match = re.search(r"pyright (\d+)\.(\d+)\.(\d+)", completed.stdout + completed.stderr)
+        if completed.returncode == 0 and match:
+            reported.append(tuple(int(part) for part in match.groups()))
+    assert reported, "No executable next to the language server reports a Pyright version"
+    assert all(version >= TESTED_PYRIGHT_VERSION for version in reported)
+
+
+@pytest.mark.asyncio
+async def test_real_pyright_advertised_capabilities_match_matrix(create_pyright):
+    server = create_pyright()
+    native_initialize = server.server.send.initialize
+    captured = {}
+
+    async def initialize(params):
+        captured["result"] = await native_initialize(params)
+        return captured["result"]
+
+    server.server.send.initialize = initialize
+
+    async def exercise():
+        async with server.start_server():
+            pass
+
+    await asyncio.wait_for(exercise(), timeout=30)
+    assert server.server.process is None
+    capabilities = captured["result"]["capabilities"]
+    assert ADVERTISED_CAPABILITIES <= set(capabilities)
+    assert UNADVERTISED_CAPABILITIES.isdisjoint(capabilities)
+    assert capabilities["textDocumentSync"] == 2
+    assert capabilities["completionProvider"]["resolveProvider"] is True
+    assert capabilities["completionProvider"]["triggerCharacters"] == [".", "[", '"', "'"]
+    assert capabilities["signatureHelpProvider"]["triggerCharacters"] == ["(", ",", ")"]
+    assert capabilities["renameProvider"]["prepareProvider"] is True
+    assert capabilities["codeActionProvider"]["codeActionKinds"] == [
+        "quickfix",
+        "source.organizeImports",
+    ]
+    # Pyright registers no server commands for a client without applyEdit.
+    assert capabilities["executeCommandProvider"]["commands"] == []
+
+
+@pytest.mark.asyncio
+async def test_real_pyright_read_only_requests_return_exact_shapes(
+    python_project,
+    create_pyright,
+):
+    """One server session covers the advertised read-only requests.
+
+    Every expectation is the exact payload returned by Pyright 1.1.413 for the
+    temporary project. Rename and code actions are proposals only: the files
+    on disk are compared byte for byte afterwards.
+    """
+    server = create_pyright()
+    before = {path: path.read_bytes() for path in python_project.glob("*.py")}
+
+    def uri(name):
+        return (python_project / name).as_uri()
+
+    def at(name, line, character):
+        return {
+            "textDocument": {"uri": uri(name)},
+            "position": {"line": line, "character": character},
+        }
+
+    greet_call_sites = [_range(2, 8, 2, 13), _range(3, 9, 3, 14)]
+    corpus = [
+        ("declaration", at("app.py", 2, 9), [{"uri": uri("lib.py"), "range": _range(0, 4, 0, 9)}]),
+        ("type_definition", at("worker.py", 4, 0), [{"uri": uri("worker.py"), "range": _range(0, 6, 0, 12)}]),
+        (
+            "document_highlight",
+            at("app.py", 2, 9),
+            [
+                {"kind": 3, "range": _range(0, 16, 0, 21)},
+                {"kind": 2, "range": greet_call_sites[0]},
+                {"kind": 2, "range": greet_call_sites[1]},
+            ],
+        ),
+        ("prepare_rename", at("lib.py", 0, 5), _range(0, 4, 0, 9)),
+        (
+            "signature_help",
+            at("app.py", 2, len("first = greet(")),
+            {
+                "activeParameter": 0,
+                "activeSignature": 0,
+                "signatures": [
+                    {
+                        "activeParameter": 0,
+                        "label": "(name: str) -> str",
+                        "parameters": [
+                            {"documentation": {"kind": "plaintext", "value": ""}, "label": [1, 10]}
+                        ],
+                    }
+                ],
+            },
+        ),
+        (
+            "prepare_call_hierarchy",
+            at("lib.py", 0, 5),
+            [
+                {
+                    "kind": 12,
+                    "name": "greet",
+                    "uri": uri("lib.py"),
+                    "range": _range(0, 4, 0, 9),
+                    "selectionRange": _range(0, 4, 0, 9),
+                }
+            ],
+        ),
+        # UTF-16 column 14 is the second `x`; a code-point column would miss it.
+        ("definition", at("emoji.py", 0, 14), [{"uri": uri("emoji.py"), "range": _range(0, 0, 0, 1)}]),
+        # Blank line: Pyright answers null, never an error.
+        ("hover", at("app.py", 1, 0), None),
+        ("definition", at("app.py", 1, 0), None),
+        ("references", {**at("app.py", 1, 0), "context": {"includeDeclaration": True}}, None),
+        (
+            "code_action",
+            {
+                "textDocument": {"uri": uri("app.py")},
+                "range": _range(0, 0, 0, 20),
+                "context": {"diagnostics": []},
+            },
+            [],
+        ),
+    ]
+
+    async def exercise():
+        async with server.start_server():
+            send = server.server.send
+            with server.open_file("app.py"), server.open_file("lib.py"), server.open_file(
+                "worker.py"
+            ), server.open_file("emoji.py"):
+                for method, params, expected in corpus:
+                    result = await asyncio.wait_for(getattr(send, method)(params), timeout=8)
+                    assert result == expected, method
+
+                # The high-level API passes UTF-16 columns through unchanged.
+                definition = await asyncio.wait_for(
+                    server.request_definition("emoji.py", 0, 14), timeout=8
+                )
+                assert [(item["relativePath"], item["range"]) for item in definition] == [
+                    ("emoji.py", _range(0, 0, 0, 1))
+                ]
+                assert await asyncio.wait_for(
+                    server.request_hover("app.py", 1, 0), timeout=8
+                ) is None
+                assert await asyncio.wait_for(
+                    server.request_references("app.py", 1, 0), timeout=8
+                ) == []
+
+                calls = await asyncio.wait_for(
+                    send.incoming_calls(
+                        {"item": (await send.prepare_call_hierarchy(at("lib.py", 0, 5)))[0]}
+                    ),
+                    timeout=8,
+                )
+                assert [(call["from"]["name"], call["from"]["uri"], call["fromRanges"]) for call in calls] == [
+                    ("(module) app.py", uri("app.py"), greet_call_sites)
+                ]
+
+                # Rename is a WorkspaceEdit proposal; nothing is applied.
+                proposal = await asyncio.wait_for(
+                    send.rename({**at("lib.py", 0, 5), "newName": "salute"}), timeout=8
+                )
+                changes = sorted(proposal["documentChanges"], key=lambda change: change["textDocument"]["uri"])
+                assert changes == [
+                    {
+                        "textDocument": {"uri": uri("app.py"), "version": None},
+                        "edits": [
+                            {"range": _range(0, 16, 0, 21), "newText": "salute"},
+                            {"range": greet_call_sites[0], "newText": "salute"},
+                            {"range": greet_call_sites[1], "newText": "salute"},
+                        ],
+                    },
+                    {
+                        "textDocument": {"uri": uri("lib.py"), "version": None},
+                        "edits": [{"range": _range(0, 4, 0, 9), "newText": "salute"}],
+                    },
+                ]
+
+                # completionItem/resolve adds documentation to a raw item.
+                completion = await asyncio.wait_for(
+                    send.completion({**at("worker.py", 5, len("result = worker.")), "context": {"triggerKind": 1}}),
+                    timeout=8,
+                )
+                item = next(entry for entry in completion["items"] if entry["label"] == "process")
+                resolved = await asyncio.wait_for(send.resolve_completion_item(item), timeout=8)
+                assert resolved["documentation"] == {"kind": "plaintext", "value": "def process() -> int"}
+                assert resolved["kind"] == 2
+
+                # Unadvertised requests fail with MethodNotFound instead of hanging.
+                with pytest.raises(Error) as unsupported:
+                    await asyncio.wait_for(send.implementation(at("lib.py", 0, 5)), timeout=8)
+                assert unsupported.value.code == ErrorCodes.MethodNotFound
+                with pytest.raises(Error):
+                    await asyncio.wait_for(
+                        send.execute_command({"command": "pyright.doesNotExist", "arguments": []}),
+                        timeout=8,
+                    )
+
+    await asyncio.wait_for(exercise(), timeout=60)
+    assert server.server.process is None
+    assert {path: path.read_bytes() for path in python_project.glob("*.py")} == before
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "mode, expected_codes",
+    [
+        ("off", set()),
+        ("basic", {"reportReturnType"}),
+        ("standard", {"reportReturnType"}),
+        ("strict", {"reportReturnType"}),
+    ],
+)
+async def test_real_pyright_type_checking_mode_controls_push_diagnostics(
+    python_project,
+    create_pyright,
+    mode,
+    expected_codes,
+):
+    (python_project / "pyrightconfig.json").write_text(
+        json.dumps({"typeCheckingMode": mode, "include": ["."]})
+    )
+    server = create_pyright()
+    source = python_project / "invalid.py"
+
+    async def exercise():
+        async with server.start_server():
+            with server.open_file("invalid.py"):
+                # Pyright publishes once per open file, also when the list is empty.
+                loop = asyncio.get_running_loop()
+                deadline = loop.time() + 18
+                while True:
+                    notification = await server.next_diagnostics(
+                        timeout=max(0.01, deadline - loop.time())
+                    )
+                    if notification["uri"] == source.as_uri():
+                        return notification["diagnostics"]
+
+    diagnostics = await asyncio.wait_for(exercise(), timeout=30)
+    assert {entry["code"] for entry in diagnostics} == expected_codes
+    assert all(entry["severity"] == 1 for entry in diagnostics)
+    assert server.server.process is None
+    assert not server.diagnostics_dropped
