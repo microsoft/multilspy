@@ -13,8 +13,6 @@ from multilspy.language_server import LanguageServer
 from multilspy.language_servers.pyright_language_server.pyright_server import (
     PyrightServer,
 )
-from multilspy.lsp_protocol_handler.lsp_types import ErrorCodes
-from multilspy.lsp_protocol_handler.server import Error
 from multilspy.multilspy_config import Language, MultilspyConfig
 from multilspy.multilspy_logger import MultilspyLogger
 
@@ -135,19 +133,20 @@ async def test_pyright_configuration_is_explicit_and_bounded(pyright):
 
 
 @pytest.mark.asyncio
-async def test_pyright_refuses_edit_and_unadvertised_registration(pyright):
+async def test_pyright_refuses_edit_and_ignores_registration(pyright):
     server, _, requests, _ = pyright
     async with server.start_server():
         result = await requests["workspace/applyEdit"](
             {"edit": {"changes": {"file:///tmp/example.py": []}}}
         )
-        assert result["applied"] is False
-        assert "read-only" in result["failureReason"]
-        with pytest.raises(Error) as caught:
-            await requests["client/registerCapability"](
-                {"registrations": [{"method": "workspace/executeCommand"}]}
-            )
-        assert caught.value.code == ErrorCodes.MethodNotFound
+        assert result == {
+            "applied": False,
+            "failureReason": "multilspy Pyright client is read-only",
+        }
+        # Like the other adapters, registration requests are acknowledged and ignored.
+        assert await requests["client/registerCapability"](
+            {"registrations": [{"method": "workspace/executeCommand"}]}
+        ) is None
 
 
 @pytest.mark.asyncio

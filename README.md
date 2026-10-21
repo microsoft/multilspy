@@ -79,6 +79,8 @@ MultilspyConfig(code_language=Language.PYTHON) continues using Jedi.
 
 Positions follow LSP: line and column are zero-based and the column counts
 UTF-16 code units, so a non-BMP character such as an emoji occupies two columns.
+Type checking is configured by the project (pyrightconfig.json or pyproject.toml);
+the adapter does not override `typeCheckingMode`.
 
 The adapter was validated against Pyright 1.1.413 (`pyright-langserver --stdio`).
 The table lists what that release advertises to multilspy's read-only client
@@ -87,12 +89,13 @@ and how multilspy exposes it:
 | Pyright capability | multilspy access | Coverage |
 | --- | --- | --- |
 | definition, references, hover, document symbols, workspace symbols | `request_definition`, `request_references`, `request_hover`, `request_document_symbols`, `request_workspace_symbol` | tested against Pyright |
-| completion, completionItem/resolve | `request_completions`; resolve through `server.send.resolve_completion_item` | tested against Pyright |
-| declaration, typeDefinition, documentHighlight, signatureHelp, call hierarchy | `server.send.*` low-level requests | tested against Pyright |
-| prepareRename, rename, codeAction | `server.send.*`; the response is a proposal, multilspy never applies edits | proposal shape tested; no quick-fix corpus |
-| publishDiagnostics (off/basic/standard/strict) | `next_diagnostics()` bounded queue | tested against Pyright |
-| workspace/configuration, workspace/applyEdit, client/registerCapability | answered by the adapter: fixed read-only settings, edits refused, registration refused | tested with fixtures |
-| executeCommand | advertised with an empty command list | unsupported |
+| completion (`isIncomplete` retries), completionItem/resolve | `request_completions`; resolve through `server.send.resolve_completion_item` | tested against Pyright |
+| declaration, typeDefinition, documentHighlight, signatureHelp, call hierarchy (incoming and outgoing) | `server.send.*` low-level requests | tested against Pyright |
+| prepareRename, rename | `server.send.*`; the response is a WorkspaceEdit proposal, multilspy never applies it | proposal shape tested |
+| codeAction (quickfix, source.organizeImports) | `server.send.code_action`; the only quick fix in 1.1.413 is "create type stub" for third-party packages without stubs, and organize imports is a command, not a code action | empty result tested; no quick-fix corpus |
+| publishDiagnostics (typeCheckingMode off/basic/standard/strict) | `next_diagnostics()` bounded queue | tested against Pyright |
+| workspace/configuration, workspace/applyEdit, client/registerCapability | answered by the adapter: fixed read-only settings, edits refused, registration acknowledged and ignored | tested with fixtures and against Pyright |
+| executeCommand | advertised with an empty command list; `pyright.organizeimports` is disabled by the adapter settings, `pyright.createtypestub` writes files and is not supported | refusal of the server's applyEdit tested |
 | implementation, pull diagnostics, semantic tokens, inlay hints, folding, selection ranges, document links, formatting, code lens | not advertised by Pyright 1.1.413; requests fail with MethodNotFound | unsupported |
 
 Real Pyright integration tests require a preinstalled language server. Set

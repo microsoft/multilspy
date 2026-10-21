@@ -39,6 +39,13 @@
         }
       },
       "rename": {"dynamicRegistration": false, "prepareSupport": true},
+      "codeAction": {
+        "dynamicRegistration": false,
+        "codeActionLiteralSupport": {
+          "codeActionKind": {"valueSet": ["quickfix", "source.organizeImports"]}
+        }
+      },
+      "callHierarchy": {"dynamicRegistration": false},
       "documentHighlight": {"dynamicRegistration": false},
       "documentSymbol": {"hierarchicalDocumentSymbolSupport": true},
       "publishDiagnostics": {"relatedInformation": true}
