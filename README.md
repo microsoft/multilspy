@@ -40,7 +40,7 @@ pip install multilspy
 | Code Language | Language Server |
 | --- | --- | 
 | java | Eclipse JDTLS |
-| python | jedi-language-server |
+| python | jedi-language-server (default) or Pyright |
 | rust | Rust Analyzer |
 | csharp | OmniSharp / RazorSharp |
 | typescript | TypeScriptLanguageServer |
@@ -52,6 +52,13 @@ pip install multilspy
 | php | Intelephense |
 | cpp | clangd |
 
+
+Pyright is an optional Python backend. Install pyright-langserver and
+select it with MultilspyConfig(code_language=Language.PYTHON,
+python_server="pyright"); pass server_binary="/absolute/path/to/pyright-langserver"
+if the executable is not on PATH. The adapter launches the server with
+--stdio and does not automatically install it. Existing Python users
+continue using Jedi by default.
 
 ## Usage
 Example usage:

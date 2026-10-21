@@ -74,6 +74,14 @@ class LanguageServer:
         :return LanguageServer: A language specific LanguageServer instance.
         """
         if config.code_language == Language.PYTHON:
+            if config.python_server == "pyright":
+                from multilspy.language_servers.pyright_language_server.pyright_server import (
+                    PyrightServer,
+                )
+
+                return PyrightServer(config, logger, repository_root_path)
+            if config.python_server != "jedi":
+                raise MultilspyException("Unsupported Python language server")
             from multilspy.language_servers.jedi_language_server.jedi_server import (
                 JediServer,
             )
@@ -425,8 +433,7 @@ class LanguageServer:
                     new_item["relativePath"] = PathUtils.get_relative_path(new_item["absolutePath"], self.repository_root_path)
                     ret.append(multilspy_types.Location(new_item))
                 elif (
-                    LSPConstants.ORIGIN_SELECTION_RANGE in item
-                    and LSPConstants.TARGET_URI in item
+                    LSPConstants.TARGET_URI in item
                     and LSPConstants.TARGET_RANGE in item
                     and LSPConstants.TARGET_SELECTION_RANGE in item
                 ):
@@ -490,6 +497,8 @@ class LanguageServer:
             )
 
         ret: List[multilspy_types.Location] = []
+        if response is None:
+            return ret
         assert isinstance(response, list), f"Unexpected response from Language Server: {response}"
         for item in response:
             assert isinstance(item, dict)

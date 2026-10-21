@@ -4,7 +4,7 @@ Configuration parameters for Multilspy.
 
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional
+from typing import Literal, Optional
 
 class Language(str, Enum):
     """
@@ -34,6 +34,8 @@ class MultilspyConfig:
     Configuration parameters
     """
     code_language: Language
+    # Preserve Jedi as the default Python backend; explicitly opt in to Pyright.
+    python_server: Literal["jedi", "pyright"] = "jedi"
     trace_lsp_communication: bool = False
     start_independent_lsp_process: bool = True
 
