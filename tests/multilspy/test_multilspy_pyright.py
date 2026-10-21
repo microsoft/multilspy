@@ -116,7 +116,7 @@ def _pyright_version(language_server_binary):
     sibling = binary.with_name("pyright")
     if sibling.is_file():
         completed = subprocess.run(
-            [str(sibling), "--version"], capture_output=True, text=True, timeout=60
+            [str(sibling), "--version"], capture_output=True, text=True, timeout=60, check=False
         )
         match = re.search(r"pyright (\d+)\.(\d+)\.(\d+)", completed.stdout + completed.stderr)
         if completed.returncode == 0 and match:
@@ -636,7 +636,7 @@ async def test_real_pyright_read_only_requests_return_exact_shapes(
             ), server.open_file("report.py"):
                 for method, params, expected in corpus:
                     result = await asyncio.wait_for(getattr(send, method)(params), timeout=8)
-                    assert result == expected, (method, params["position"] if "position" in params else params)
+                    assert result == expected, (method, params.get("position", params))
 
                 # The high-level API passes UTF-16 columns through unchanged.
                 definition = await asyncio.wait_for(
