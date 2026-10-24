@@ -158,6 +158,10 @@ class TypeScriptLanguageServer(LanguageServer):
         async def window_log_message(msg):
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
 
+        # Fresh events for every session, so they bind to the current event loop and start unset
+        self.server_ready = asyncio.Event()
+        self.completions_available = asyncio.Event()
+
         self.server.on_request("client/registerCapability", do_nothing)
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
@@ -194,3 +198,5 @@ class TypeScriptLanguageServer(LanguageServer):
             finally:
                 await self.server.shutdown()
                 await self.server.stop()
+                self.server_ready = asyncio.Event()
+                self.completions_available = asyncio.Event()
