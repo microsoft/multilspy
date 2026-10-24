@@ -101,6 +101,28 @@ The file [src/multilspy/language_server.py](src/multilspy/language_server.py) pr
 pytest tests/multilspy
 ```
 
+### C/C++ and header files
+
+For C/C++ use `{"code_language": "cpp"}`, which starts [clangd](https://clangd.llvm.org/). `multilspy` launches clangd with no extra arguments, with the project root you pass to `create` as its working directory and workspace root. So clangd's default behaviour applies: it looks for `compile_commands.json` (or `compile_flags.txt`) in the directory of the file and its parent directories. Compilation databases normally contain entries for source files rather than headers. For a header without its own command, clangd may reuse the command of an open source file that includes it; otherwise it infers a command from a nearby or similarly named source-file entry. Ensure the database contains representative translation units with the required include paths and defines. With `compile_flags.txt`, the same flags are used for every file. Put `compile_commands.json` at the project root, for example by generating it with CMake and linking it there, as [tests/multilspy/test_multilspy_clangd.py](tests/multilspy/test_multilspy_clangd.py) does:
+```bash
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S . -B build
+cmake --build build
+ln -s build/compile_commands.json .
+```
+Other ways to generate it are listed in the [clangd project setup guide](https://clangd.llvm.org/installation.html#project-setup).
+
+File paths passed to requests (headers included) are relative to the project root. Definitions found in headers come back with a `relativePath` relative to the same root:
+```python
+config = MultilspyConfig.from_dict({"code_language": "cpp"})
+lsp = SyncLanguageServer.create(config, MultilspyLogger(), "/abs/path/to/project/root/")
+with lsp.start_server():
+    # the definition may be in a header, e.g. "include/foo/bar.h"
+    definitions = lsp.request_definition("src/foo.cpp", 241, 26)
+    # requests can also be made on a header file directly
+    references = lsp.request_references("include/foo/bar.h", 10, 6)
+```
+Without a compilation database clangd falls back to default flags, so results for headers may be incomplete. On larger projects clangd builds its index in the background, so repeating a query later may return more results.
+
 ## Use of `multilspy` in AI4Code Scenarios like Monitor-Guided Decoding
 `multilspy` provides all the features that language-server-protocol provides to IDEs like VSCode. It is useful to develop toolsets that can interface with AI systems like Large Language Models (LLM). 
 ### [Monitor-Guided Decoding](https://github.com/microsoft/monitors4codegen)
