@@ -51,6 +51,37 @@ pip install multilspy
 | kotlin | KotlinLanguageServer |
 | php | Intelephense |
 | cpp | clangd |
+| elixir | Elixir language server |
+
+## Supported LSP Features
+`multilspy` exposes the following LSP requests. Each is available on both `LanguageServer` (async) and `SyncLanguageServer` (sync), with the same method name:
+
+| LSP request | `multilspy` method |
+| --- | --- |
+| [textDocument/definition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition) | `request_definition` |
+| [textDocument/references](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_references) | `request_references` |
+| [textDocument/completion](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion) | `request_completions` |
+| [textDocument/documentSymbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol) | `request_document_symbols` |
+| [textDocument/hover](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover) | `request_hover` |
+| [workspace/symbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbol) | `request_workspace_symbol` |
+
+`multilspy` itself does not restrict which of these requests can be sent for a language; whether a request returns results depends on the capabilities of the underlying language server. The table below records what has been confirmed for each language server (✅ = confirmed supported, ? = not confirmed in this repository; this does not mean the server lacks the feature). A feature is confirmed if at least one of the following holds: the server wrapper in [src/multilspy/language_servers/](src/multilspy/language_servers/) asserts the matching server capability when initializing (for example, `completionProvider`, or all of the capabilities for Kotlin), the server's reported capabilities were checked directly (jedi-language-server), or a test under [tests/multilspy/](tests/multilspy/) exercises the request for that language.
+
+| Code Language | definition | references | completion | documentSymbol | hover | workspace/symbol |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: |
+| java | ✅ | ✅ | ✅ | ✅ | ✅ | ? |
+| python | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| rust | ✅ | ✅ | ✅ | ? | ? | ✅ |
+| csharp | ✅ | ✅ | ✅ | ? | ? | ? |
+| typescript | ✅ | ✅ | ✅ | ? | ? | ? |
+| javascript | ✅ | ✅ | ✅ | ? | ? | ? |
+| go | ✅ | ✅ | ✅ | ✅ | ✅ | ? |
+| dart | ? | ✅ | ? | ✅ | ? | ? |
+| ruby | ✅ | ✅ | ✅ | ✅ | ? | ? |
+| kotlin | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| php | ✅ | ✅ | ? | ✅ | ? | ? |
+| cpp | ✅ | ✅ | ✅ | ✅ | ✅ | ? |
+| elixir | ✅ | ✅ | ? | ✅ | ✅ | ✅ |
 
 
 ## Usage
