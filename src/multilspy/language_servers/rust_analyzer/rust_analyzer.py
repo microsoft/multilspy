@@ -130,6 +130,10 @@ class RustAnalyzer(LanguageServer):
         async def window_log_message(msg):
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
 
+        # Fresh events for every session, so they bind to the current event loop and start unset
+        self.server_ready = asyncio.Event()
+        self.completions_available = asyncio.Event()
+
         self.server.on_request("client/registerCapability", do_nothing)
         self.server.on_notification("language/status", do_nothing)
         self.server.on_notification("window/logMessage", window_log_message)
@@ -165,3 +169,5 @@ class RustAnalyzer(LanguageServer):
             finally:
                 await self.server.shutdown()
                 await self.server.stop()
+                self.server_ready = asyncio.Event()
+                self.completions_available = asyncio.Event()

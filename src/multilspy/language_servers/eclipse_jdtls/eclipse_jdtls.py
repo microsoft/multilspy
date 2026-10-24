@@ -340,6 +340,12 @@ class EclipseJDTLS(LanguageServer):
         async def do_nothing(params):
             return
 
+        # Fresh events for every session, so they bind to the current event loop and start unset
+        self.service_ready_event = asyncio.Event()
+        self.intellicode_enable_command_available = asyncio.Event()
+        self.initialize_searcher_command_available = asyncio.Event()
+        self.completions_available = asyncio.Event()
+
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("language/status", lang_status_handler)
         self.server.on_notification("window/logMessage", window_log_message)
@@ -404,3 +410,7 @@ class EclipseJDTLS(LanguageServer):
             finally:
                 await self.server.shutdown()
                 await self.server.stop()
+                self.service_ready_event = asyncio.Event()
+                self.intellicode_enable_command_available = asyncio.Event()
+                self.initialize_searcher_command_available = asyncio.Event()
+                self.completions_available = asyncio.Event()

@@ -398,6 +398,11 @@ class OmniSharp(LanguageServer):
                 }
             ]
 
+        # Fresh events for every session, so they bind to the current event loop and start unset
+        self.definition_available = asyncio.Event()
+        self.references_available = asyncio.Event()
+        self.completions_available = asyncio.Event()
+
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("language/status", lang_status_handler)
         self.server.on_notification("window/logMessage", window_log_message)
@@ -442,3 +447,6 @@ class OmniSharp(LanguageServer):
             finally:
                 await self.server.shutdown()
                 await self.server.stop()
+                self.definition_available = asyncio.Event()
+                self.references_available = asyncio.Event()
+                self.completions_available = asyncio.Event()
