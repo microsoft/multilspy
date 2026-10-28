@@ -96,6 +96,50 @@ async with lsp.start_server():
     ...
 ```
 
+### Using low-level LSP requests via `send`
+`SyncLanguageServer` provides wrappers for only some LSP requests (`request_definition`, `request_references`, `request_completions`, `request_document_symbols`, `request_hover`, `request_workspace_symbol`). Any other request defined in [src/multilspy/lsp_protocol_handler/lsp_requests.py](src/multilspy/lsp_protocol_handler/lsp_requests.py) can be sent through `lsp.language_server.server.send`. These calls are coroutines that must run on the language server's event loop (`lsp.loop`), so submit them with `asyncio.run_coroutine_threadsafe`:
+```python
+import asyncio
+import pathlib
+from multilspy import SyncLanguageServer
+from multilspy.multilspy_config import MultilspyConfig
+from multilspy.multilspy_logger import MultilspyLogger
+from multilspy.lsp_protocol_handler.lsp_constants import LSPConstants
+
+config = MultilspyConfig.from_dict({"code_language": "python"})
+logger = MultilspyLogger()
+repository_root = pathlib.Path.cwd().resolve()  # absolute path of the project root (here: the current directory)
+lsp = SyncLanguageServer.create(config, logger, str(repository_root))
+
+with lsp.start_server():
+    file_path = "relative/path/to/code_file.py"  # must be an existing file, relative to the repository root
+    line_number, column_number = 1, 0
+    server = lsp.language_server  # the underlying asyncio LanguageServer
+
+    async def send_position_request(send_method):
+        # The file must be open in the language server before making requests on it
+        with server.open_file(file_path):
+            uri = (repository_root / file_path).as_uri()
+            return await send_method(
+                {
+                    LSPConstants.TEXT_DOCUMENT: {LSPConstants.URI: uri},
+                    LSPConstants.POSITION: {
+                        LSPConstants.LINE: line_number,
+                        LSPConstants.CHARACTER: column_number,
+                    },
+                }
+            )
+
+    definition = asyncio.run_coroutine_threadsafe(
+        send_position_request(server.server.send.definition), lsp.loop
+    ).result(timeout=lsp.timeout)
+    declaration = asyncio.run_coroutine_threadsafe(
+        send_position_request(server.server.send.declaration), lsp.loop
+    ).result(timeout=lsp.timeout)
+    print(definition, declaration)
+```
+Note that the results of `send` calls are the raw JSON values returned by the language server (for example a list of `{"uri": ..., "range": ...}` dictionaries), not `multilspy` types, and the exact result depends on the language server in use.
+
 The file [src/multilspy/language_server.py](src/multilspy/language_server.py) provides the `multilspy` API. Several tests for `multilspy` present under [tests/multilspy/](tests/multilspy/) provide detailed usage examples for `multilspy`. The tests can be executed by running:
 ```bash
 pytest tests/multilspy
